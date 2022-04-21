@@ -1,0 +1,93 @@
+name: Test and deploy to GKE
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITH: development
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        persist-credentials: false
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: "3.1"
+        bundler-cache: true
+
+    - name: Run RuboCop
+      run: bundle exec rubocop
+
+  deploy:
+    needs: checks
+    if: github.repository_owner == 'Homebrew' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/homebrew-docker/ci-orchestrator
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        persist-credentials: false
+
+    - name: Authenticate to Google Cloud
+      id: gcloud-auth
+      uses: google-github-actions/auth@v0
+      with:
+        token_format: access_token
+        workload_identity_provider: projects/${{ secrets.GCP_PROJECT_NUM }}/locations/global/workloadIdentityPools/ci-orchestrator-deploy/providers/github-actions
+        service_account: ci-orchestrator-deploy@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+
+    - name: Configure Docker
+      run: |-
+        echo ${{ steps.gcloud-auth.outputs.access_token }} | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
+
+    - name: Build Docker image
+      run: |-
+        docker build --tag "$IMAGE:latest" .
+
+    - name: Publish Docker image
+      run: |-
+        docker push "$IMAGE:latest"
+
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v0
+      with:
+        cluster_name: ci-orchestrator
+        location: us-central1-c
+
+    - name: Deploy Kubernetes
+      working-directory: deployment
+      env:
+        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        PUBLIC_IP: ${{ secrets.PUBLIC_IP }}
+        ORKA_BASE_URL: ${{ secrets.ORKA_BASE_URL }}
+        GITHUB_ORGANISATION: ${{ github.repository_owner }}
+        GITHUB_INSTALLATION_ID: ${{ secrets.GITHUBAPP_INSTALLATION_ID }}
+      run: |-
+        sed "s|@IMAGE@|$IMAGE|g" deployment.yml.in > deployment.yml
+        sed -f /dev/stdin config.yml.in > config.yml <<SED_SCRIPT
+          s|@PUBLIC_IP@|$PUBLIC_IP|g
+          s|@ORKA_BASE_URL@|$ORKA_BASE_URL|g
+          s|@GITHUB_ORGANISATION@|$GITHUB_ORGANISATION|g
+          s|@GITHUB_INSTALLATION_ID@|$GITHUB_INSTALLATION_ID|g
+        SED_SCRIPT
+        kubectl apply -f .
+        kubectl rollout status deployment/ci-orchestrator

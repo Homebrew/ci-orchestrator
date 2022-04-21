@@ -1,0 +1,47 @@
+# frozen_string_literal: true
+
+require_relative "server"
+
+# We have a second pod that assigns the correct IP.
+# Let's wait on that to avoid race conditions. Is it hacky? Probably.
+# This IP assignment is however necessary for Orka requests to succeed.
+public_ip = ENV.fetch("PUBLIC_IP", nil)
+unless public_ip.nil?
+  current_ip = nil
+  loop do
+    begin
+      current_ip = Net::HTTP.get(URI("https://api.ipify.org"))
+    rescue
+      # continue
+    end
+    break if current_ip == public_ip
+
+    puts("Waiting for public IP match...")
+    sleep(5)
+  end
+end
+
+puts("Starting application...")
+
+threads = []
+
+warmup do
+  SharedState.instance.load
+
+  puts "Starting background worker threads..."
+
+  threads += SharedState.instance.thread_runners.map { |runner| Thread.new { runner.run } }
+end
+
+at_exit do
+  puts "Shutting down background worker threads... this may take a while."
+
+  threads.each(&:kill)
+  while (thread = threads.shift)
+    thread.join
+  end
+
+  SharedState.instance.save
+end
+
+run CIOrchestratorApp

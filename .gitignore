@@ -1,0 +1,5 @@
+/.bundle/
+/.env
+/deployment/config.yml
+/deployment/deployment.yml
+state.json

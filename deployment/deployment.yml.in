@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ci-orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ci-orchestrator
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: ci-orchestrator
+    spec:
+      terminationGracePeriodSeconds: 1800
+      containers:
+      - name: ci-orchestrator
+        image: @IMAGE@:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          hostPort: 80
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        env:
+        - name: STATE_FILE
+          value: /data/state.json
+        envFrom:
+        - configMapRef:
+            name: ci-orchestrator-config
+        - secretRef:
+            name: ci-orchestrator-secrets
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: ci-orchestrator-disk

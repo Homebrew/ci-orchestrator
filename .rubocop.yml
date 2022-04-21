@@ -1,0 +1,91 @@
+AllCops:
+  NewCops: enable
+
+Layout/CaseIndentation:
+  EnforcedStyle: end
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: start_of_line
+
+Layout/FirstArrayElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/HashAlignment:
+  EnforcedHashRocketStyle: table
+  EnforcedColonStyle: table
+
+Layout/LineLength:
+  Max: 118
+
+Metrics/AbcSize:
+  Max: 100
+
+Metrics/BlockLength:
+  Max: 100
+
+Metrics/ClassLength:
+  Max: 500
+
+Metrics/CyclomaticComplexity:
+  Max: 20
+
+Metrics/PerceivedComplexity:
+  Max: 20
+
+Metrics/MethodLength:
+  Max: 100
+
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
+Style/AndOr:
+  EnforcedStyle: always
+
+Style/AutoResourceCleanup:
+  Enabled: true
+
+Style/CollectionMethods:
+  Enabled: true
+
+Style/MutableConstant:
+  EnforcedStyle: strict
+
+Style/NumericLiterals:
+  Enabled: false
+
+Style/RescueStandardError:
+  Enabled: false
+
+Style/StderrPuts:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Style/StringMethods:
+  Enabled: true
+
+Style/SymbolArray:
+  EnforcedStyle: brackets
+
+Style/TernaryParentheses:
+  EnforcedStyle: require_parentheses_when_complex
+
+Style/TrailingCommaInArguments:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/UnlessLogicalOperators:
+  Enabled: true
+  EnforcedStyle: forbid_logical_operators
