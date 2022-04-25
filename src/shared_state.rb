@@ -75,15 +75,19 @@ class SharedState
     @github_runner_metadata = GitHubRunnerMetadata.new
 
     @jobs = []
+    @loaded = false
   end
 
   def load
+    raise "Already loaded state." if @loaded
     raise "Too late to load state." unless @jobs.empty?
 
     @file_mutex.synchronize do
       @jobs = JSON.parse(File.read(@config.state_file))
+      @loaded = true
       puts "Loaded #{jobs.count} jobs from state file."
     rescue Errno::ENOENT
+      @loaded = true
       puts "No state file found. Assuming fresh start."
       return
     end
@@ -110,6 +114,10 @@ class SharedState
     @file_mutex.synchronize do
       File.write(@config.state_file, @jobs.to_json)
     end
+  end
+
+  def loaded?
+    @loaded
   end
 
   def github_client

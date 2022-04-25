@@ -26,11 +26,12 @@ puts("Starting application...")
 threads = []
 
 warmup do
-  SharedState.instance.load
+  state = SharedState.instance
+  state.load
 
   puts "Starting background worker threads..."
 
-  threads += SharedState.instance.thread_runners.map { |runner| Thread.new { runner.run } }
+  threads += state.thread_runners.map { |runner| Thread.new { runner.run } }
 end
 
 at_exit do
@@ -41,7 +42,8 @@ at_exit do
     thread.join
   end
 
-  SharedState.instance.save
+  state = SharedState.instance
+  state.save if state.loaded?
 end
 
 run CIOrchestratorApp
