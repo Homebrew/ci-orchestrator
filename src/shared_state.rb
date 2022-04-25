@@ -110,7 +110,7 @@ class SharedState
   end
 
   def github_client
-    return @github_client if @github_client_expiry && (@github_client_expiry.to_i - Time.now.to_i) < 300
+    return @github_client if @github_client_expiry && (@github_client_expiry.to_i - Time.now.to_i) >= 300
 
     payload = {
       iat: Time.now.to_i - 60,
