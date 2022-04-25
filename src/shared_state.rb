@@ -3,8 +3,12 @@
 require "singleton"
 
 require "orka_api_client"
+
 require "octokit"
+# TODO: upstream these
 require_relative "octokit/self_hosted_runner"
+require_relative "octokit/hook_deliveries"
+
 require "openssl"
 require "jwt"
 require "base64"
@@ -57,6 +61,8 @@ class SharedState
               :github_runner_metadata,
               :jobs
 
+  attr_accessor :last_webhook_check_time
+
   def initialize
     @config = Config.new
 
@@ -75,6 +81,7 @@ class SharedState
     @github_runner_metadata = GitHubRunnerMetadata.new
 
     @jobs = []
+    @last_webhook_check_time = Time.now.to_i
     @loaded = false
   end
 
@@ -83,7 +90,9 @@ class SharedState
     raise "Too late to load state." unless @jobs.empty?
 
     @file_mutex.synchronize do
-      @jobs = JSON.parse(File.read(@config.state_file))
+      state = JSON.parse(File.read(@config.state_file))
+      @jobs = state["jobs"]
+      @last_webhook_check_time = state["last_webhook_check_time"]
       @loaded = true
       puts "Loaded #{jobs.count} jobs from state file."
     rescue Errno::ENOENT
@@ -112,7 +121,11 @@ class SharedState
 
   def save
     @file_mutex.synchronize do
-      File.write(@config.state_file, @jobs.to_json)
+      state = {
+        jobs:                    @jobs,
+        last_webhook_check_time: @last_webhook_check_time,
+      }
+      File.write(@config.state_file, state.to_json)
     end
   end
 
@@ -120,9 +133,7 @@ class SharedState
     @loaded
   end
 
-  def github_client
-    return @github_client if @github_client_expiry && (@github_client_expiry.to_i - Time.now.to_i) >= 300
-
+  def jwt_github_client
     payload = {
       iat: Time.now.to_i - 60,
       exp: Time.now.to_i + (9 * 60), # 10 is the max, but let's be safe with 9.
@@ -130,7 +141,12 @@ class SharedState
     }
     token = JWT.encode(payload, @config.github_app_private_key, "RS256")
 
-    jwt_github_client = Octokit::Client.new(bearer_token: token)
+    Octokit::Client.new(bearer_token: token)
+  end
+
+  def github_client
+    return @github_client if @github_client_expiry && (@github_client_expiry.to_i - Time.now.to_i) >= 300
+
     jwt = jwt_github_client.create_app_installation_access_token(@config.github_installation_id)
 
     @github_client = Octokit::Client.new(bearer_token: jwt.token)
