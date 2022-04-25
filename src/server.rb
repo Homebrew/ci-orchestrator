@@ -24,27 +24,40 @@ class CIOrchestratorApp < Sinatra::Base
 
     halt 400, "Unsupported event \"#{event}\"!" if event != "workflow_job"
 
+    state = SharedState.instance
     workflow_job = payload["workflow_job"]
     case payload["action"]
     when "queued"
       workflow_job["labels"].each do |label|
-        next unless label =~ LABEL_REGEX
+        next if label !~ LABEL_REGEX
 
-        job = Job.new(runner_name: label)
-        SharedState.instance.jobs << job
-        SharedState.instance.orka_start_processor.queue << job
+        # If we've seen this job before, don't queue again.
+        next if state.expired_jobs.include?(label)
+
+        job = Job.new(label)
+        state.jobs << job
+        state.orka_start_processor.queue << job
       end
     when "in_progress"
       runners_for_job(workflow_job).each do |runner|
-        SharedState.instance.job(runner)&.github_state = :in_progress
+        job = state.job(runner)
+        if job.nil?
+          expire_missed_job(runner)
+          next
+        end
+
+        job.github_state = :in_progress if job.github_state != :completed
       end
     when "completed"
       runners_for_job(workflow_job).each do |runner|
-        job = SharedState.instance.job(runner)
-        next if job.nil?
+        job = state.job(runner)
+        if job.nil?
+          expire_missed_job(runner)
+          next
+        end
 
         job.github_state = :completed
-        SharedState.instance.orka_stop_processor.queue << job unless job.orka_vm_id.nil?
+        state.orka_stop_processor.queue << job unless job.orka_vm_id.nil?
       end
     end
   end
@@ -65,5 +78,12 @@ class CIOrchestratorApp < Sinatra::Base
     else
       workflow_job["labels"].grep(LABEL_REGEX)
     end
+  end
+
+  def expire_missed_job(runner)
+    return if runner !~ LABEL_REGEX
+    return if state.expired_jobs.include?(runner)
+
+    state.expired_jobs << ExpiredJob.new(runner, expired_at: Time.now.to_i)
   end
 end

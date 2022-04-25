@@ -5,7 +5,7 @@ class Job
   attr_reader :runner_name
   attr_accessor :github_state, :orka_vm_id
 
-  def initialize(runner_name:)
+  def initialize(runner_name)
     @runner_name = runner_name
     @github_state = :queued
     @orka_vm_id = nil
@@ -20,7 +20,7 @@ class Job
   end
 
   def self.json_create(object)
-    job = new(runner_name: object["runner_name"])
+    job = new(object["runner_name"])
     job.github_state = object["github_state"].to_sym
     job.orka_vm_id = object["orka_vm_id"]
     job

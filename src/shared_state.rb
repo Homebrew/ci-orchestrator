@@ -15,6 +15,7 @@ require "base64"
 
 require_relative "github_runner_metadata"
 require_relative "job"
+require_relative "expired_job"
 
 require_relative "orka_start_processor"
 require_relative "orka_stop_processor"
@@ -59,7 +60,7 @@ class SharedState
               :orka_mutex, :orka_free_condvar, :github_mutex, :github_metadata_condvar,
               :orka_start_processor, :orka_stop_processor, :github_watcher,
               :github_runner_metadata,
-              :jobs
+              :jobs, :expired_jobs
 
   attr_accessor :last_webhook_check_time
 
@@ -81,6 +82,7 @@ class SharedState
     @github_runner_metadata = GitHubRunnerMetadata.new
 
     @jobs = []
+    @expired_jobs = []
     @last_webhook_check_time = Time.now.to_i
     @loaded = false
   end
@@ -90,8 +92,9 @@ class SharedState
     raise "Too late to load state." unless @jobs.empty?
 
     @file_mutex.synchronize do
-      state = JSON.parse(File.read(@config.state_file))
+      state = JSON.parse(File.read(@config.state_file), create_additions: true)
       @jobs = state["jobs"]
+      @expired_jobs = state["expired_jobs"]
       @last_webhook_check_time = state["last_webhook_check_time"]
       @loaded = true
       puts "Loaded #{jobs.count} jobs from state file."
@@ -123,6 +126,7 @@ class SharedState
     @file_mutex.synchronize do
       state = {
         jobs:                    @jobs,
+        expired_jobs:            @expired_jobs,
         last_webhook_check_time: @last_webhook_check_time,
       }
       File.write(@config.state_file, state.to_json)

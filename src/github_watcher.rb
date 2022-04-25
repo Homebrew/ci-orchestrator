@@ -11,6 +11,7 @@ class GitHubWatcher
       redeliver_webhooks
       Thread.handle_interrupt(Object => :never) do
         delete_runners
+        cleanup_expired_jobs
         save_state
       end
       sleep(60)
@@ -128,7 +129,7 @@ class GitHubWatcher
       return
     end
 
-    state.jobs.delete_if do |job|
+    expired_jobs, jobs_left = state.jobs.partition do |job|
       next false if job.github_state == :queued
       next false unless job.orka_vm_id.nil?
 
@@ -143,6 +144,23 @@ class GitHubWatcher
       end
 
       true
+    end
+
+    state.jobs.replace(jobs_left)
+
+    expired_jobs.map! do |job|
+      ExpiredJob.new(job.runner_name, expired_at: Time.now.to_i)
+    end
+    state.expired_jobs.concat(expired_jobs)
+  rescue => e
+    $stderr.puts(e)
+    $stderr.puts(e.backtrace)
+  end
+
+  def cleanup_expired_jobs
+    current_time = Time.now.to_i
+    SharedState.instance.expired_jobs.delete_if do |job|
+      job.expired_at < (current_time - 86400) # Forget after one day.
     end
   rescue => e
     $stderr.puts(e)
