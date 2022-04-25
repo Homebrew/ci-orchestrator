@@ -9,4 +9,9 @@ class GitHubRunnerMetadata
     @download_url = nil
     @download_fetch_time = nil
   end
+
+  def to_s
+    "Runner Metadata"
+  end
+  alias inspect to_s
 end
