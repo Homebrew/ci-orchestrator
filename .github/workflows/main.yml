@@ -79,6 +79,7 @@ jobs:
         GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         PUBLIC_IP: ${{ secrets.PUBLIC_IP }}
         ORKA_BASE_URL: ${{ secrets.ORKA_BASE_URL }}
+        GITHUB_APP_ID: ${{ secrets.GITHUBAPP_ID }}
         GITHUB_ORGANISATION: ${{ github.repository_owner }}
         GITHUB_INSTALLATION_ID: ${{ secrets.GITHUBAPP_INSTALLATION_ID }}
       run: |-
@@ -86,6 +87,7 @@ jobs:
         sed -f /dev/stdin config.yml.in > config.yml <<SED_SCRIPT
           s|@PUBLIC_IP@|$PUBLIC_IP|g
           s|@ORKA_BASE_URL@|$ORKA_BASE_URL|g
+          s|@GITHUB_APP_ID@|$GITHUB_APP_ID|g
           s|@GITHUB_ORGANISATION@|$GITHUB_ORGANISATION|g
           s|@GITHUB_INSTALLATION_ID@|$GITHUB_INSTALLATION_ID|g
         SED_SCRIPT
