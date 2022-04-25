@@ -35,6 +35,7 @@ jobs:
     if: github.repository_owner == 'Homebrew' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production
+    concurrency: production
     env:
       IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/homebrew-docker/ci-orchestrator
     permissions:
