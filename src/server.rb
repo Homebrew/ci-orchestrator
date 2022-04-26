@@ -10,8 +10,12 @@ require_relative "shared_state"
 class CIOrchestratorApp < Sinatra::Base
   LABEL_REGEX = /\A\d+(?:\.\d+)?(?:-arm64)?-\d+-\d+\z/.freeze
 
-  get "/ping" do
-    "pong"
+  get "/robots.txt" do
+    content_type :txt
+    <<~TEXT
+      User-agent: *
+      Disallow: /
+    TEXT
   end
 
   post "/hooks/github" do
