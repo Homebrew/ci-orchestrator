@@ -37,7 +37,7 @@ jobs:
     environment: production
     concurrency: production
     env:
-      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/homebrew-docker/ci-orchestrator
+      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/homebrew-docker/ci-orchestrator:${{ github.sha }}
     permissions:
       contents: read
       id-token: write
@@ -62,11 +62,11 @@ jobs:
 
     - name: Build Docker image
       run: |-
-        docker build --tag "$IMAGE:latest" .
+        docker build --tag "$IMAGE" .
 
     - name: Publish Docker image
       run: |-
-        docker push "$IMAGE:latest"
+        docker push "$IMAGE"
 
     - name: Get GKE credentials
       uses: google-github-actions/get-gke-credentials@v0

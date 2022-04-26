@@ -16,8 +16,7 @@ spec:
       terminationGracePeriodSeconds: 1800
       containers:
       - name: ci-orchestrator
-        image: @IMAGE@:latest
-        imagePullPolicy: Always
+        image: @IMAGE@
         ports:
         - containerPort: 8080
         volumeMounts:
