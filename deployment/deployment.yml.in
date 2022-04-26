@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: ci-orchestrator
 spec:
@@ -7,7 +7,7 @@ spec:
   selector:
     matchLabels:
       app: ci-orchestrator
-  minReadySeconds: 5
+  serviceName: ci-orchestrator-service
   template:
     metadata:
       labels:
@@ -20,10 +20,10 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
-          hostPort: 80
         volumeMounts:
-        - mountPath: /data
-          name: data
+        - name: ci-orchestrator-volume
+          mountPath: /data
+          subPath: data
         env:
         - name: STATE_FILE
           value: /data/state.json
@@ -32,7 +32,44 @@ spec:
             name: ci-orchestrator-config
         - secretRef:
             name: ci-orchestrator-secrets
+      - name: nginx
+        image: jonasal/nginx-certbot:3-alpine
+        ports:
+        - containerPort: 80
+          hostPort: 80
+        - containerPort: 443
+          hostPort: 443
+        volumeMounts:
+        - name: ci-orchestrator-volume
+          mountPath: /etc/letsencrypt
+          subPath: letsencrypt
+        - name: nginx-config-volume
+          mountPath: /etc/nginx/user_conf.d/ci-orchestrator.conf
+          subPath: ci-orchestrator.conf
+          readOnly: true
+        env:
+        - name: CERTBOT_EMAIL
+          value: @CERTBOT_EMAIL@
       volumes:
-      - name: data
+      - name: ci-orchestrator-volume
         persistentVolumeClaim:
           claimName: ci-orchestrator-disk
+      - name: nginx-config-volume
+        configMap:
+          name: ci-orchestrator-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ci-orchestrator-service
+  labels:
+    app: ci-orchestrator-app
+spec:
+  ports:
+  - name: http
+    port: 80
+  - name: https
+    port: 443
+  clusterIP: None
+  selector:
+    app: ci-orchestrator-app

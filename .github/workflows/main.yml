@@ -77,15 +77,20 @@ jobs:
     - name: Deploy Kubernetes
       working-directory: deployment
       env:
-        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+        DOMAIN: ${{ secrets.DOMAIN }}
         PUBLIC_IP: ${{ secrets.PUBLIC_IP }}
         ORKA_BASE_URL: ${{ secrets.ORKA_BASE_URL }}
         GITHUB_APP_ID: ${{ secrets.GITHUBAPP_ID }}
         GITHUB_ORGANISATION: ${{ github.repository_owner }}
         GITHUB_INSTALLATION_ID: ${{ secrets.GITHUBAPP_INSTALLATION_ID }}
       run: |-
-        sed "s|@IMAGE@|$IMAGE|g" deployment.yml.in > deployment.yml
+        sed -f /dev/stdin deployment.yml.in > deployment.yml <<SED_SCRIPT
+          s|@IMAGE@|$IMAGE|g
+          s|@CERTBOT_EMAIL@|$CERTBOT_EMAIL|g
+        SED_SCRIPT
         sed -f /dev/stdin config.yml.in > config.yml <<SED_SCRIPT
+          s|@DOMAIN@|$DOMAIN|g
           s|@PUBLIC_IP@|$PUBLIC_IP|g
           s|@ORKA_BASE_URL@|$ORKA_BASE_URL|g
           s|@GITHUB_APP_ID@|$GITHUB_APP_ID|g
@@ -93,4 +98,4 @@ jobs:
           s|@GITHUB_INSTALLATION_ID@|$GITHUB_INSTALLATION_ID|g
         SED_SCRIPT
         kubectl apply -f .
-        kubectl rollout status deployment/ci-orchestrator
+        kubectl rollout status statefulset/ci-orchestrator
