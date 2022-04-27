@@ -84,6 +84,7 @@ class OrkaStartProcessor
       @queue << job if job && job.orka_vm_id.nil? # Reschedule
       $stderr.puts(e)
       $stderr.puts(e.backtrace)
+      sleep(30)
     end
   end
 
