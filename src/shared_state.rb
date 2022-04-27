@@ -117,8 +117,15 @@ class SharedState
           job.orka_vm_id = nil
         end
 
-        @orka_start_processor.queue << job if job.github_state == :queued && job.orka_vm_id.nil?
-        if !job.orka_vm_id.nil? && (job.github_state == :completed || !job.orka_setup_complete?)
+        if job.orka_vm_id.nil?
+          if job.github_state == :queued
+            puts "Queueing #{job.runner_name} for deployment..."
+            @orka_start_processor.queue << job
+          else
+            puts "Ready to expire #{job.runner_name}."
+          end
+        elsif job.github_state == :completed || !job.orka_setup_complete?
+          puts "Queueing #{job.runner_name} for teardown..."
           @orka_stop_processor.queue << job
         end
       end

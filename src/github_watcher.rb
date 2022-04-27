@@ -74,6 +74,7 @@ class GitHubWatcher
 
     # Limit to production and the last 6 hours
     if ENV.fetch("RACK_ENV") == "development" || (Time.now.to_i - lookback_time) > 21600
+      puts "Not attempting to redeliver webhooks."
       state.last_webhook_check_time = Time.now.to_i
       return
     end
@@ -110,11 +111,13 @@ class GitHubWatcher
       true
     end
 
+    puts "Asking for redelivery of #{failed_deliveries.length} hook events..." unless failed_deliveries.empty?
     failed_deliveries.each do |delivery|
       client.redeliver_app_hook(delivery.id)
     rescue Octokit::Error
       $stderr.puts("Failed to redeliver #{delivery.id}.")
     end
+    puts "Redelivery requests sent." unless failed_deliveries.empty?
   rescue => e
     $stderr.puts(e)
     $stderr.puts(e.backtrace)
@@ -136,8 +139,10 @@ class GitHubWatcher
       runner = runners.find { |candidate| candidate.name == job.runner_name }
       next true if runner.nil?
 
+      puts "Deleting organisation runner for #{job.runner_name}..."
       begin
         state.github_client.delete_org_runner(state.config.github_organisation, runner.id)
+        puts "Organisation runner for #{job.runner_name} deleted."
       rescue Octokit::Error
         $stderr.puts("Error deleting organisation runner for \"#{job.runner_name}\".")
         next false
@@ -148,6 +153,7 @@ class GitHubWatcher
 
     state.jobs.replace(jobs_left)
 
+    puts "Marking #{expired_jobs.length} jobs as expired." unless expired_jobs.empty?
     expired_jobs.map! do |job|
       ExpiredJob.new(job.runner_name, expired_at: Time.now.to_i)
     end
