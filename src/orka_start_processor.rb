@@ -100,12 +100,13 @@ class OrkaStartProcessor
                             password:        SharedState.instance.config.brew_vm_password,
                             port:            deployment.ssh_port,
                             non_interactive: true,
-                            verify_host_key: :never)
+                            verify_host_key: :never,
+                            timeout:         5)
     rescue Net::SSH::Exception, SocketError, Errno::ECONNREFUSED,
            Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::ECONNRESET,
            Errno::ENETDOWN
       attempts += 1
-      raise if attempts > 10
+      raise if attempts > 15
 
       sleep(15)
       retry
