@@ -91,14 +91,19 @@ class OrkaStartProcessor
   private
 
   def setup_actions_runner(deployment, name, token)
-    puts "Connecting to VM for job #{name} via SSH..."
+    state = SharedState.instance
+    mapping = state.config.orka_ssh_map.fetch(deployment.ip, {})
+    ip = mapping.fetch("ip", deployment.ip)
+    port = deployment.ssh_port + mapping.fetch("port_offset", 0)
+
+    puts "Connecting to VM for job #{name} via SSH (#{ip}:#{port})..."
 
     attempts = 0
     begin
-      conn = Net::SSH.start(deployment.ip,
+      conn = Net::SSH.start(ip,
                             "brew",
-                            password:        SharedState.instance.config.brew_vm_password,
-                            port:            deployment.ssh_port,
+                            password:        state.config.brew_vm_password,
+                            port:            port,
                             non_interactive: true,
                             verify_host_key: :never,
                             timeout:         5)
@@ -115,7 +120,7 @@ class OrkaStartProcessor
     puts "Connected to VM for job #{name} via SSH, configuring..."
 
     url = "https://github.com/Bo98/runner/releases/download/v2.290.0/actions-runner-osx-arm64-2.290.0.tar.gz"
-    org = SharedState.instance.config.github_organisation
+    org = state.config.github_organisation
     config_args = %W[
       --url "https://github.com/#{org}"
       --token "#{token}"
