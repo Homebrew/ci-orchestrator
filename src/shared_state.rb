@@ -53,6 +53,8 @@ class SharedState
     alias inspect to_s
   end
 
+  STATE_VERSION = 1
+
   MAX_WEBHOOK_REDELIVERY_WINDOW = 21600
 
   MAX_INTEL_SLOTS = 0
@@ -96,9 +98,11 @@ class SharedState
 
     @file_mutex.synchronize do
       state = JSON.parse(File.read(@config.state_file), create_additions: true)
-      @jobs = state["jobs"]
-      @expired_jobs = state["expired_jobs"]
-      @last_webhook_check_time = state["last_webhook_check_time"]
+      if state["version"] == STATE_VERSION
+        @jobs = state["jobs"]
+        @expired_jobs = state["expired_jobs"]
+        @last_webhook_check_time = state["last_webhook_check_time"]
+      end
       @loaded = true
       puts "Loaded #{jobs.count} jobs from state file."
     rescue Errno::ENOENT
@@ -142,6 +146,7 @@ class SharedState
   def save
     @file_mutex.synchronize do
       state = {
+        version:                 STATE_VERSION,
         jobs:                    @jobs,
         expired_jobs:            @expired_jobs,
         last_webhook_check_time: @last_webhook_check_time,
