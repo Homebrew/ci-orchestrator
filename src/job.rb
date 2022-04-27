@@ -4,11 +4,13 @@
 class Job
   attr_reader :runner_name
   attr_accessor :github_state, :orka_vm_id
+  attr_writer :orka_setup_complete
 
   def initialize(runner_name)
     @runner_name = runner_name
     @github_state = :queued
     @orka_vm_id = nil
+    @orka_setup_complete = false
   end
 
   def os
@@ -17,6 +19,10 @@ class Job
 
   def arm64?
     os.end_with?("-arm64")
+  end
+
+  def orka_setup_complete?
+    @orka_setup_complete
   end
 
   def self.json_create(object)

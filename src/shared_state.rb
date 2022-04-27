@@ -117,8 +117,10 @@ class SharedState
           job.orka_vm_id = nil
         end
 
-        @orka_start_processor.queue << job if job.github_state == :queued
-        @orka_stop_processor.queue << job if job.github_state == :completed && !job.orka_vm_id.nil?
+        @orka_start_processor.queue << job if job.github_state == :queued && job.orka_vm_id.nil?
+        if !job.orka_vm_id.nil? && (job.github_state == :completed || !job.orka_setup_complete?)
+          @orka_stop_processor.queue << job
+        end
       end
     end
   end

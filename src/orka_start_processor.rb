@@ -26,6 +26,7 @@ class OrkaStartProcessor
       Thread.handle_interrupt(Object => :on_blocking) do
         job = @queue.pop
         state = SharedState.instance
+        next unless job.orka_vm_id.nil?
 
         github_metadata = state.github_runner_metadata
         github_mutex = state.github_mutex
@@ -67,6 +68,7 @@ class OrkaStartProcessor
                           .vm_configuration(CONFIG_MAP[job.os])
                           .deploy(vm_metadata: vm_metadata)
             job.orka_vm_id = result.resource.name
+            job.orka_setup_complete = true unless vm_metadata.nil?
             puts "VM for job #{job.runner_name} deployed."
           end
         end
@@ -77,6 +79,7 @@ class OrkaStartProcessor
           else
             true
           end
+          job.orka_setup_complete = true if success
           state.orka_stop_processor.queue << job if !success || job.github_state == :completed
         end
       end
