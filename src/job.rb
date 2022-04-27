@@ -29,15 +29,17 @@ class Job
     job = new(object["runner_name"])
     job.github_state = object["github_state"].to_sym
     job.orka_vm_id = object["orka_vm_id"]
+    job.orka_setup_complete = object["orka_setup_complete"]
     job
   end
 
   def to_json(*args)
     {
-      JSON.create_id => self.class.name,
-      "runner_name"  => @runner_name,
-      "github_state" => @github_state,
-      "orka_vm_id"   => @orka_vm_id,
+      JSON.create_id        => self.class.name,
+      "runner_name"         => @runner_name,
+      "github_state"        => @github_state,
+      "orka_vm_id"          => @orka_vm_id,
+      "orka_setup_complete" => @orka_setup_complete,
     }.to_json(*args)
   end
 end
