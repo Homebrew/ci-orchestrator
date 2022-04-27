@@ -31,6 +31,16 @@ class OrkaStopProcessor
             puts "VM for job #{job.runner_name} deleted."
           end
         end
+
+        if job.github_state == :queued
+          if orka.orka_start_attempts > 5
+            # We've tried and failed. Move on.
+            job.github_state = :completed
+          else
+            # Try deploy again.
+            state.orka_start_processor.queue << job
+          end
+        end
       end
     rescue => e
       @queue << job unless job&.orka_vm_id.nil? # Reschedule

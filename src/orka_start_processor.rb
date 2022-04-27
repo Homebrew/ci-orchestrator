@@ -67,6 +67,7 @@ class OrkaStartProcessor
             result = state.orka_client
                           .vm_configuration(CONFIG_MAP[job.os])
                           .deploy(vm_metadata: vm_metadata)
+            job.orka_start_attempts += 1
             job.orka_vm_id = result.resource.name
             job.orka_setup_complete = true unless vm_metadata.nil?
             puts "VM for job #{job.runner_name} deployed."
