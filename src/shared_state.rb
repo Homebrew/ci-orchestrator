@@ -53,6 +53,8 @@ class SharedState
     alias inspect to_s
   end
 
+  MAX_WEBHOOK_REDELIVERY_WINDOW = 21600
+
   MAX_INTEL_SLOTS = 0
   MAX_ARM_SLOTS = 6
 
@@ -119,8 +121,13 @@ class SharedState
 
         if job.orka_vm_id.nil?
           if job.github_state == :queued
-            puts "Queueing #{job.runner_name} for deployment..."
-            @orka_start_processor.queue << job
+            if (Time.now.to_i - @last_webhook_check_time) > MAX_WEBHOOK_REDELIVERY_WINDOW
+              # Just assume we're done if we've been gone for a while.
+              job.github_state = :completed
+            else
+              puts "Queueing #{job.runner_name} for deployment..."
+              @orka_start_processor.queue << job
+            end
           else
             puts "Ready to expire #{job.runner_name}."
           end

@@ -73,7 +73,8 @@ class GitHubWatcher
     lookback_time = state.last_webhook_check_time
 
     # Limit to production and the last 6 hours
-    if ENV.fetch("RACK_ENV") == "development" || (Time.now.to_i - lookback_time) > 21600
+    if ENV.fetch("RACK_ENV") == "development" ||
+       (Time.now.to_i - lookback_time) > SharedState::MAX_WEBHOOK_REDELIVERY_WINDOW
       puts "Not attempting to redeliver webhooks."
       state.last_webhook_check_time = Time.now.to_i
       return
