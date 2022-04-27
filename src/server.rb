@@ -64,6 +64,8 @@ class CIOrchestratorApp < Sinatra::Base
         state.orka_stop_processor.queue << job unless job.orka_vm_id.nil?
       end
     end
+
+    "Accepted"
   end
 
   private
