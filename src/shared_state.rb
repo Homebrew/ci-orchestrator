@@ -17,6 +17,7 @@ require_relative "github_runner_metadata"
 require_relative "job"
 require_relative "expired_job"
 
+require_relative "shutdown_exception"
 require_relative "orka_start_processor"
 require_relative "orka_stop_processor"
 require_relative "github_watcher"

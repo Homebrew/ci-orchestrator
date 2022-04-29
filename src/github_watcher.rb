@@ -9,13 +9,15 @@ class GitHubWatcher
       refresh_token
       refresh_download_url
       redeliver_webhooks
-      Thread.handle_interrupt(Object => :never) do
+      Thread.handle_interrupt(ShutdownException => :never) do
         delete_runners
         cleanup_expired_jobs
         save_state
       end
       sleep(60)
     end
+  rescue ShutdownException
+    # Exit gracefully
   end
 
   private
@@ -38,6 +40,8 @@ class GitHubWatcher
         state.github_metadata_condvar.broadcast
       end
     end
+  rescue ShutdownException
+    Thread.current.kill
   rescue => e
     $stderr.puts(e)
     $stderr.puts(e.backtrace)
@@ -63,6 +67,8 @@ class GitHubWatcher
         state.github_metadata_condvar.broadcast
       end
     end
+  rescue ShutdownException
+    Thread.current.kill
   rescue => e
     $stderr.puts(e)
     $stderr.puts(e.backtrace)
@@ -119,6 +125,8 @@ class GitHubWatcher
       $stderr.puts("Failed to redeliver #{delivery.id}.")
     end
     puts "Redelivery requests sent." unless failed_deliveries.empty?
+  rescue ShutdownException
+    Thread.current.kill
   rescue => e
     $stderr.puts(e)
     $stderr.puts(e.backtrace)

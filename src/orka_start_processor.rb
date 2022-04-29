@@ -24,7 +24,7 @@ class OrkaStartProcessor
 
     job = nil
     loop do
-      Thread.handle_interrupt(Object => :on_blocking) do
+      Thread.handle_interrupt(ShutdownException => :on_blocking) do
         job = @queue.pop
         state = SharedState.instance
         next unless job.orka_vm_id.nil?
@@ -63,7 +63,7 @@ class OrkaStartProcessor
             next
           end
 
-          Thread.handle_interrupt(Object => :never) do
+          Thread.handle_interrupt(ShutdownException => :never) do
             puts "Deploying VM for job #{job.runner_name}..."
             result = state.orka_client
                           .vm_configuration(CONFIG_MAP[job.os])
@@ -75,7 +75,7 @@ class OrkaStartProcessor
           end
         end
 
-        Thread.handle_interrupt(Object => :never) do
+        Thread.handle_interrupt(ShutdownException => :never) do
           success = if vm_metadata.nil?
             setup_actions_runner(result, job, github_metadata.registration_token.token)
           else
@@ -85,6 +85,8 @@ class OrkaStartProcessor
           state.orka_stop_processor.queue << job if !success || job.github_state == :completed
         end
       end
+    rescue ShutdownException
+      break
     rescue => e
       @queue << job if job && job.orka_vm_id.nil? # Reschedule
       $stderr.puts(e)
@@ -154,6 +156,8 @@ class OrkaStartProcessor
 
     puts "VM for job #{job.runner_name} configured."
     true
+  rescue ShutdownException
+    Thread.current.kill
   rescue => e
     $stderr.puts("VM configuration for job #{job.runner_name} failed.")
     $stderr.puts(e)

@@ -37,7 +37,7 @@ end
 at_exit do
   puts "Shutting down background worker threads... this may take a while."
 
-  threads.each(&:kill)
+  threads.each { |thread| thread.raise ShutdownException }
   while (thread = threads.shift)
     thread.join
   end

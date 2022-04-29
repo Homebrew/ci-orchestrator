@@ -13,13 +13,13 @@ class OrkaStopProcessor
 
     job = nil
     loop do
-      Thread.handle_interrupt(Object => :on_blocking) do
+      Thread.handle_interrupt(ShutdownException => :on_blocking) do
         job = @queue.pop
         next if job.orka_vm_id.nil?
 
         state = SharedState.instance
         state.orka_mutex.synchronize do
-          Thread.handle_interrupt(Object => :never) do
+          Thread.handle_interrupt(ShutdownException => :never) do
             puts "Deleting VM for job #{job.runner_name}..."
             begin
               state.orka_client.vm_resource(job.orka_vm_id).delete_all_instances
@@ -42,6 +42,8 @@ class OrkaStopProcessor
           end
         end
       end
+    rescue ShutdownException
+      break
     rescue => e
       @queue << job unless job&.orka_vm_id.nil? # Reschedule
       $stderr.puts(e)
