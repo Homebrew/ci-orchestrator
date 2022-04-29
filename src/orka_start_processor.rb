@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "net/ssh"
+require "timeout"
 
 # Thread runner responsible for deploying Orka VMs.
 class OrkaStartProcessor
@@ -76,7 +77,7 @@ class OrkaStartProcessor
 
         Thread.handle_interrupt(Object => :never) do
           success = if vm_metadata.nil?
-            setup_actions_runner(result, job.runner_name, github_metadata.registration_token.token)
+            setup_actions_runner(result, job, github_metadata.registration_token.token)
           else
             true
           end
@@ -94,13 +95,13 @@ class OrkaStartProcessor
 
   private
 
-  def setup_actions_runner(deployment, name, token)
+  def setup_actions_runner(deployment, job, token)
     state = SharedState.instance
     mapping = state.config.orka_ssh_map.fetch(deployment.ip, {})
     ip = mapping.fetch("ip", deployment.ip)
     port = deployment.ssh_port + mapping.fetch("port_offset", 0)
 
-    puts "Connecting to VM for job #{name} via SSH (#{ip}:#{port})..."
+    puts "Connecting to VM for job #{job.runner_name} via SSH (#{ip}:#{port})..."
 
     attempts = 0
     begin
@@ -115,13 +116,13 @@ class OrkaStartProcessor
            Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::ECONNRESET,
            Errno::ENETDOWN
       attempts += 1
-      raise if attempts > 15
+      raise if attempts > 15 || job.orka_vm_id.nil?
 
       sleep(15)
       retry
     end
 
-    puts "Connected to VM for job #{name} via SSH, configuring..."
+    puts "Connected to VM for job #{job.runner_name} via SSH, configuring..."
 
     url = "https://github.com/Bo98/runner/releases/download/v2.290.1/actions-runner-osx-arm64-2.290.1.tar.gz"
     org = state.config.github_organisation
@@ -130,8 +131,8 @@ class OrkaStartProcessor
       --token "#{token}"
       --work _work
       --unattended
-      --labels "#{name}"
-      --name "#{name}"
+      --labels "#{job.runner_name}"
+      --name "#{job.runner_name}"
       --replace
       --ephemeral
     ]
@@ -145,12 +146,16 @@ class OrkaStartProcessor
           "COMPlus_ReadyToRun=0 ./config.sh #{config_args.join(" ")} && " \
           "./svc.sh install && " \
           "./svc.sh start"
-    conn.exec!(cmd)
 
-    puts "VM for job #{name} configured."
+    # Net::SSH doesn't handle timeouts well :(
+    Timeout.timeout(120) do
+      conn.exec!(cmd)
+    end
+
+    puts "VM for job #{job.runner_name} configured."
     true
   rescue => e
-    $stderr.puts("VM configuration for job #{name} failed.")
+    $stderr.puts("VM configuration for job #{job.runner_name} failed.")
     $stderr.puts(e)
     $stderr.puts(e.backtrace)
     false
