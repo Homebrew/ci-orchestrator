@@ -8,7 +8,6 @@ class OrkaStartProcessor
   CONFIG_MAP = {
     "10.15"    => "catalina",
     "11"       => "bigsur",
-    "11-arm64" => "bigsur-arm64",
     "12"       => "monterey",
     "12-arm64" => "monterey-arm64",
   }.freeze
@@ -156,8 +155,6 @@ class OrkaStartProcessor
 
     puts "VM for job #{job.runner_name} configured."
     true
-  rescue ShutdownException
-    Thread.current.kill
   rescue => e
     $stderr.puts("VM configuration for job #{job.runner_name} failed.")
     $stderr.puts(e)
