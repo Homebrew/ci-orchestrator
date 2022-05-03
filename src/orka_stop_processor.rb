@@ -33,7 +33,7 @@ class OrkaStopProcessor
         end
 
         if job.github_state == :queued
-          if orka.orka_start_attempts > 5
+          if job.orka_start_attempts > 5
             # We've tried and failed. Move on.
             job.github_state = :completed
           else
