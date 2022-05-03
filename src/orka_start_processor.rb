@@ -77,7 +77,7 @@ class OrkaStartProcessor
             $stderr.puts("Timeout when deploying VM for job #{job.runner_name}.")
 
             # Clean up the stuck deployment.
-            state.orka_client.vm_configuration(config).instances.each do |instance|
+            state.orka_client.vm_resource(config).instances.each do |instance|
               next if instance.ip != "N/A"
 
               $stderr.puts("Deleting stuck deployment #{instance.id}.")
