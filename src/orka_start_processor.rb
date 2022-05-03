@@ -73,7 +73,7 @@ class OrkaStartProcessor
             job.orka_vm_id = result.resource.name
             job.orka_setup_complete = true unless vm_metadata.nil?
             puts "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
-          rescue Net::ReadTimeout
+          rescue Faraday::TimeoutError
             $stderr.puts("Timeout when deploying VM for job #{job.runner_name}.")
 
             # Clean up the stuck deployment.
