@@ -70,9 +70,11 @@ class OrkaStartProcessor
             job.orka_start_attempts += 1
             job.orka_vm_id = result.resource.name
             job.orka_setup_complete = true unless vm_metadata.nil?
-            puts "VM for job #{job.runner_name} deployed."
+            puts "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
           end
         end
+
+        next if result.nil?
 
         Thread.handle_interrupt(ShutdownException => :never) do
           success = if vm_metadata.nil?
