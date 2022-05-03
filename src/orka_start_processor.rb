@@ -62,15 +62,27 @@ class OrkaStartProcessor
             next
           end
 
+          config = CONFIG_MAP[job.os]
+
           Thread.handle_interrupt(ShutdownException => :never) do
             puts "Deploying VM for job #{job.runner_name}..."
             result = state.orka_client
-                          .vm_configuration(CONFIG_MAP[job.os])
+                          .vm_configuration(config)
                           .deploy(vm_metadata: vm_metadata)
             job.orka_start_attempts += 1
             job.orka_vm_id = result.resource.name
             job.orka_setup_complete = true unless vm_metadata.nil?
             puts "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
+          rescue Net::ReadTimeout
+            $stderr.puts("Timeout when deploying VM for job #{job.runner_name}.")
+
+            # Clean up the stuck deployment.
+            state.orka_client.vm_configuration(config).instances.each do |instance|
+              next if instance.ip != "N/A"
+
+              $stderr.puts("Deleting stuck deployment #{instance.id}.")
+              instance.delete
+            end
           end
         end
 

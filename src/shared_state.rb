@@ -116,7 +116,8 @@ class SharedState
 
     @orka_mutex.synchronize do
       puts "Checking for VMs deleted during downtime..."
-      ids = @orka_client.vm_resources.flat_map(&:instances).map(&:id)
+      instances = @orka_client.vm_resources.flat_map(&:instances)
+      ids = instances.map(&:id)
       @jobs.each do |job|
         # Some VMs might have been deleted while we were in downtime.
         if !job.orka_vm_id.nil? && !ids.include?(job.orka_vm_id)
@@ -140,6 +141,14 @@ class SharedState
           puts "Queueing #{job.runner_name} for teardown..."
           @orka_stop_processor.queue << job
         end
+      end
+
+      puts "Checking for stuck deployments..."
+      instances.each do |instance|
+        next if instance.ip != "N/A"
+
+        puts "Deleting stuck deployment #{instance.id}."
+        instance.delete
       end
     end
   end
