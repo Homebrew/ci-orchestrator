@@ -59,7 +59,7 @@ class SharedState
   MAX_WEBHOOK_REDELIVERY_WINDOW = 21600
 
   MAX_INTEL_SLOTS = 0
-  MAX_ARM_SLOTS = 2
+  MAX_ARM_SLOTS = 6
 
   attr_reader :config,
               :orka_client,
