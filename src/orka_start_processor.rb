@@ -143,7 +143,7 @@ class OrkaStartProcessor
 
     puts "Connected to VM for job #{job.runner_name} via SSH, configuring..."
 
-    url = "https://github.com/Bo98/runner/releases/download/v2.290.1/actions-runner-osx-arm64-2.290.1.tar.gz"
+    url = "https://github.com/Bo98/runner/releases/download/v2.291.1/actions-runner-osx-arm64-2.291.1.tar.gz"
     org = state.config.github_organisation
     config_args = %W[
       --url "https://github.com/#{org}"
