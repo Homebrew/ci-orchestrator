@@ -63,6 +63,7 @@ class OrkaStartProcessor
           end
 
           config = CONFIG_MAP[job.os]
+          job.orka_setup_complete = false
 
           Thread.handle_interrupt(ShutdownException => :never) do
             puts "Deploying VM for job #{job.runner_name}..."
@@ -83,6 +84,9 @@ class OrkaStartProcessor
               $stderr.puts("Deleting stuck deployment #{instance.id}.")
               instance.delete
             end
+
+            result = nil
+            @queue << job # Reschedule
           end
         end
 
