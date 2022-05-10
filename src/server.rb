@@ -88,6 +88,8 @@ class CIOrchestratorApp < Sinatra::Base
 
   def expire_missed_job(runner)
     return if runner !~ LABEL_REGEX
+
+    state = SharedState.instance
     return if state.expired_jobs.include?(runner)
 
     state.expired_jobs << ExpiredJob.new(runner, expired_at: Time.now.to_i)
