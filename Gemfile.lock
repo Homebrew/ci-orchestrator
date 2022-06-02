@@ -10,7 +10,7 @@ GIT
 
 GIT
   remote: https://github.com/Homebrew/orka_api_client
-  revision: bda5cce07db5a7135420250e9b1666b7349064a2
+  revision: 5dd6d1e6ae6dbba10ba1a8e20e2c3d06e74a983b
   specs:
     orka_api_client (0.1.0)
       faraday (~> 2.0)
@@ -22,12 +22,12 @@ GEM
     addressable (2.8.0)
       public_suffix (>= 2.0.2, < 5.0)
     ast (2.4.2)
-    faraday (2.2.0)
+    faraday (2.3.0)
       faraday-net_http (~> 2.0)
       ruby2_keywords (>= 0.0.4)
     faraday-multipart (1.0.3)
       multipart-post (>= 1.2, < 3)
-    faraday-net_http (2.0.2)
+    faraday-net_http (2.0.3)
     faraday-retry (1.0.3)
     jwt (2.3.0)
     multipart-post (2.1.1)
@@ -41,24 +41,24 @@ GEM
     public_suffix (4.0.7)
     puma (5.6.4)
       nio4r (~> 2.0)
-    rack (2.2.3)
+    rack (2.2.3.1)
     rack-protection (2.2.0)
       rack
     rainbow (3.1.1)
-    regexp_parser (2.3.0)
+    regexp_parser (2.5.0)
     rexml (3.2.5)
-    rubocop (1.28.1)
+    rubocop (1.30.0)
       parallel (~> 1.10)
       parser (>= 3.1.0.0)
       rainbow (>= 2.2.2, < 4.0)
       regexp_parser (>= 1.8, < 3.0)
-      rexml
-      rubocop-ast (>= 1.17.0, < 2.0)
+      rexml (>= 3.2.5, < 4.0)
+      rubocop-ast (>= 1.18.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 3.0)
-    rubocop-ast (1.17.0)
+    rubocop-ast (1.18.0)
       parser (>= 3.1.1.0)
-    rubocop-performance (1.13.3)
+    rubocop-performance (1.14.0)
       rubocop (>= 1.7.0, < 2.0)
       rubocop-ast (>= 0.4.0)
     ruby-progressbar (1.11.0)
