@@ -6,10 +6,11 @@ require "timeout"
 # Thread runner responsible for deploying Orka VMs.
 class OrkaStartProcessor
   CONFIG_MAP = {
-    "10.15"    => "catalina",
-    "11"       => "bigsur",
-    "12"       => "monterey",
-    "12-arm64" => "monterey-arm64",
+    "10.11-cross" => "highsierra-xcode7",
+    "10.15"       => "catalina",
+    "11"          => "bigsur",
+    "12"          => "monterey",
+    "12-arm64"    => "monterey-arm64",
   }.freeze
 
   attr_reader :queue
