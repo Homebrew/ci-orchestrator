@@ -7,7 +7,7 @@ class GitHubWatcher
 
     loop do
       refresh_token
-      refresh_download_url
+      refresh_download_urls
       redeliver_webhooks
       Thread.handle_interrupt(ShutdownException => :never) do
         delete_runners
@@ -47,21 +47,29 @@ class GitHubWatcher
     $stderr.puts(e.backtrace)
   end
 
-  def refresh_download_url
+  def refresh_download_urls
     state = SharedState.instance
     metadata = state.github_runner_metadata
-    download = metadata.download_url
-    if download.nil? || (Time.now.to_i - metadata.download_fetch_time.to_i) > 86400
+    if metadata.download_urls.nil? || (Time.now.to_i - metadata.download_fetch_time.to_i) > 86400
       begin
-        downloads = state.github_client
-                         .org_runner_applications(state.config.github_organisation)
-        download = downloads.select { |candidate| candidate.os == "osx" && candidate.architecture == "x64" }.first
+        applications = state.github_client
+                            .org_runner_applications(state.config.github_organisation)
+        download_urls = {}
+        applications.each do |candidate|
+          download_urls[candidate.os] ||= {}
+          download_urls[candidate.os][candidate.architecture] = candidate.download_url
+        end
       rescue Octokit::Error
         $stderr.puts("Error retriving runner download URL.")
         return
       end
 
-      metadata.download_url = download
+      if download_urls.dig("osx", "x64").nil? || download_urls.dig("osx", "arm64").nil?
+        $stderr.puts("Did not find all expected runner downloads.")
+        return
+      end
+
+      metadata.download_urls = download_urls
       metadata.download_fetch_time = Time.now
       state.github_mutex.synchronize do
         state.github_metadata_condvar.broadcast

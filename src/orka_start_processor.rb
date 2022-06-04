@@ -34,7 +34,7 @@ class OrkaStartProcessor
         github_mutex.synchronize do
           while github_metadata.registration_token.nil? ||
                 (github_metadata.registration_token.expires_at.to_i - Time.now.to_i) < 300 ||
-                github_metadata.download_url.nil?
+                github_metadata.download_urls.nil?
             puts "Waiting for GitHub metadata..."
             state.github_metadata_condvar.wait(github_mutex)
           end
@@ -46,7 +46,7 @@ class OrkaStartProcessor
             label:       job.runner_name,
             name:        job.runner_name,
             config_args: "--ephemeral",
-            download:    github_metadata.download_url,
+            download:    github_metadata.download_urls["osx"]["x64"],
           }
         end
 
@@ -144,7 +144,7 @@ class OrkaStartProcessor
 
     puts "Connected to VM for job #{job.runner_name} via SSH, configuring..."
 
-    url = "https://github.com/Bo98/runner/releases/download/v2.291.1/actions-runner-osx-arm64-2.291.1.tar.gz"
+    url = state.github_runner_metadata.download_urls["osx"]["arm64"]
     org = state.config.github_organisation
     config_args = %W[
       --url "https://github.com/#{org}"
