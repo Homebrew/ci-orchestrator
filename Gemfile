@@ -2,10 +2,10 @@
 
 source "https://rubygems.org"
 
+gem "faraday-retry" # for octokit
 gem "jwt"
 gem "net-ssh"
-gem "octokit", git: "https://github.com/Bo98/octokit.rb",
-               ref: "69bd668fcde51f282f02514bf9b4bd7646a07026"
+gem "octokit"
 gem "orka_api_client", git: "https://github.com/Homebrew/orka_api_client"
 gem "puma"
 gem "sinatra"
