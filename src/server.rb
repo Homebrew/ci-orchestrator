@@ -8,7 +8,7 @@ require_relative "shared_state"
 
 # The app to listen to incoming webhook events.
 class CIOrchestratorApp < Sinatra::Base
-  LABEL_REGEX = /\A\d+(?:\.\d+)?(?:-arm64)?-\d+-\d+\z/.freeze
+  LABEL_REGEX = /\A\d+(?:\.\d+)?(?:-arm64)?-\d+-\d+\z/
 
   get "/robots.txt" do
     content_type :txt

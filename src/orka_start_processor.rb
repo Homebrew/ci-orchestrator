@@ -70,7 +70,7 @@ class OrkaStartProcessor
             puts "Deploying VM for job #{job.runner_name}..."
             result = state.orka_client
                           .vm_configuration(config)
-                          .deploy(vm_metadata: vm_metadata)
+                          .deploy(vm_metadata:)
             job.orka_start_attempts += 1
             job.orka_vm_id = result.resource.name
             job.orka_setup_complete = true unless vm_metadata.nil?
@@ -128,7 +128,7 @@ class OrkaStartProcessor
       conn = Net::SSH.start(ip,
                             "brew",
                             password:        state.config.brew_vm_password,
-                            port:            port,
+                            port:,
                             non_interactive: true,
                             verify_host_key: :never,
                             timeout:         5)
