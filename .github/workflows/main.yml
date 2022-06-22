@@ -83,6 +83,7 @@ jobs:
         ORKA_BASE_URL: ${{ secrets.ORKA_BASE_URL }}
         ORKA_SSH_MAP: ${{ secrets.ORKA_SSH_MAP }}
         GITHUB_APP_ID: ${{ secrets.GITHUBAPP_ID }}
+        GITHUB_CLIENT_ID: ${{ secrets.GITHUBCLIENT_ID }}
         GITHUB_ORGANISATION: ${{ github.repository_owner }}
         GITHUB_INSTALLATION_ID: ${{ secrets.GITHUBAPP_INSTALLATION_ID }}
       run: |-
@@ -96,6 +97,7 @@ jobs:
           s|@ORKA_BASE_URL@|$ORKA_BASE_URL|g
           s|@ORKA_SSH_MAP@|$ORKA_SSH_MAP|g
           s|@GITHUB_APP_ID@|$GITHUB_APP_ID|g
+          s|@GITHUB_CLIENT_ID@|$GITHUB_CLIENT_ID|g
           s|@GITHUB_ORGANISATION@|$GITHUB_ORGANISATION|g
           s|@GITHUB_INSTALLATION_ID@|$GITHUB_INSTALLATION_ID|g
         SED_SCRIPT

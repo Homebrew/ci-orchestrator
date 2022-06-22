@@ -2,12 +2,15 @@
 
 # Information representing a CI job.
 class Job
-  attr_reader :runner_name
+  NAME_REGEX = /\A(?<runner>\d+(?:\.\d+)?(?:-arm64)?)-(?<run_id>\d+)-(?<run_attempt>\d+)\z/
+
+  attr_reader :runner_name, :repository
   attr_accessor :github_state, :orka_vm_id, :orka_start_attempts
   attr_writer :orka_setup_complete
 
-  def initialize(runner_name)
+  def initialize(runner_name, repository)
     @runner_name = runner_name
+    @repository = repository
     @github_state = :queued
     @orka_vm_id = nil
     @orka_setup_complete = false
@@ -15,11 +18,19 @@ class Job
   end
 
   def os
-    @runner_name[/^\d+(?:\.\d+)?(?:-arm64)?/]
+    @runner_name[NAME_REGEX, :runner]
   end
 
   def arm64?
     os.end_with?("-arm64")
+  end
+
+  def run_id
+    @runner_name[NAME_REGEX, :run_id]
+  end
+
+  def run_attempt
+    @runner_name[NAME_REGEX, :run_attempt]
   end
 
   def orka_setup_complete?

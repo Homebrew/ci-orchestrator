@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
+require_relative "thread_runner"
+
 require "net/ssh"
 require "timeout"
 
 # Thread runner responsible for deploying Orka VMs.
-class OrkaStartProcessor
+class OrkaStartProcessor < ThreadRunner
   CONFIG_MAP = {
     "10.11-cross" => "highsierra-xcode7",
     "10.15"       => "catalina",
@@ -16,11 +18,12 @@ class OrkaStartProcessor
   attr_reader :queue
 
   def initialize
+    super
     @queue = Queue.new
   end
 
   def run
-    puts "Started #{self.class.name}."
+    log "Started #{self.class.name}."
 
     job = nil
     loop do
@@ -35,7 +38,7 @@ class OrkaStartProcessor
           while github_metadata.registration_token.nil? ||
                 (github_metadata.registration_token.expires_at.to_i - Time.now.to_i) < 300 ||
                 github_metadata.download_urls.nil?
-            puts "Waiting for GitHub metadata..."
+            log "Waiting for GitHub metadata..."
             state.github_metadata_condvar.wait(github_mutex)
           end
         end
@@ -54,12 +57,12 @@ class OrkaStartProcessor
         result = nil
         state.orka_mutex.synchronize do
           until state.free_slot?(job)
-            puts "Job #{job.runner_name} is waiting for a free slot."
+            log "Job #{job.runner_name} is waiting for a free slot."
             state.orka_free_condvar.wait(state.orka_mutex)
           end
 
           if job.github_state != :queued
-            puts "Job #{job.runner_name} no longer in queued state, skipping."
+            log "Job #{job.runner_name} no longer in queued state, skipping."
             next
           end
 
@@ -67,22 +70,22 @@ class OrkaStartProcessor
           job.orka_setup_complete = false
 
           Thread.handle_interrupt(ShutdownException => :never) do
-            puts "Deploying VM for job #{job.runner_name}..."
+            log "Deploying VM for job #{job.runner_name}..."
             result = state.orka_client
                           .vm_configuration(config)
                           .deploy(vm_metadata:)
             job.orka_start_attempts += 1
             job.orka_vm_id = result.resource.name
             job.orka_setup_complete = true unless vm_metadata.nil?
-            puts "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
+            log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
           rescue Faraday::TimeoutError
-            $stderr.puts("Timeout when deploying VM for job #{job.runner_name}.")
+            log("Timeout when deploying VM for job #{job.runner_name}.", error: true)
 
             # Clean up the stuck deployment.
             state.orka_client.vm_resource(config).instances.each do |instance|
               next if instance.ip != "N/A"
 
-              $stderr.puts("Deleting stuck deployment #{instance.id}.")
+              log("Deleting stuck deployment #{instance.id}.", error: true)
               instance.delete
             end
 
@@ -107,8 +110,8 @@ class OrkaStartProcessor
       break
     rescue => e
       @queue << job if job && job.orka_vm_id.nil? # Reschedule
-      $stderr.puts(e)
-      $stderr.puts(e.backtrace)
+      log(e, error: true)
+      log(e.backtrace, error: true)
       sleep(30)
     end
   end
@@ -121,7 +124,7 @@ class OrkaStartProcessor
     ip = mapping.fetch("ip", deployment.ip)
     port = deployment.ssh_port + mapping.fetch("port_offset", 0)
 
-    puts "Connecting to VM for job #{job.runner_name} via SSH (#{ip}:#{port})..."
+    log "Connecting to VM for job #{job.runner_name} via SSH (#{ip}:#{port})..."
 
     attempts = 0
     begin
@@ -142,7 +145,7 @@ class OrkaStartProcessor
       retry
     end
 
-    puts "Connected to VM for job #{job.runner_name} via SSH, configuring..."
+    log "Connected to VM for job #{job.runner_name} via SSH, configuring..."
 
     url = state.github_runner_metadata.download_urls["osx"]["arm64"]
     org = state.config.github_organisation
@@ -172,12 +175,12 @@ class OrkaStartProcessor
       conn.exec!(cmd)
     end
 
-    puts "VM for job #{job.runner_name} configured."
+    log "VM for job #{job.runner_name} configured."
     true
   rescue => e
-    $stderr.puts("VM configuration for job #{job.runner_name} failed.")
-    $stderr.puts(e)
-    $stderr.puts(e.backtrace)
+    log("VM configuration for job #{job.runner_name} failed.", error: true)
+    log(e, error: true)
+    log(e.backtrace, error: true)
     false
   ensure
     conn.close if conn && !conn.closed?

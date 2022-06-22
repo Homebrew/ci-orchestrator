@@ -1,15 +1,18 @@
 # frozen_string_literal: true
 
+require_relative "thread_runner"
+
 # Thread runner responsible for destroying Orka VMs.
-class OrkaStopProcessor
+class OrkaStopProcessor < ThreadRunner
   attr_reader :queue
 
   def initialize
+    super
     @queue = Queue.new
   end
 
   def run
-    puts "Started #{self.class.name}."
+    log "Started #{self.class.name}."
 
     job = nil
     loop do
@@ -20,22 +23,22 @@ class OrkaStopProcessor
         state = SharedState.instance
         state.orka_mutex.synchronize do
           Thread.handle_interrupt(ShutdownException => :never) do
-            puts "Deleting VM for job #{job.runner_name}..."
+            log "Deleting VM for job #{job.runner_name}..."
             begin
               state.orka_client.vm_resource(job.orka_vm_id).delete_all_instances
             rescue OrkaAPI::ResourceNotFoundError
-              puts "VM for job #{job.runner_name} already deleted!"
+              log "VM for job #{job.runner_name} already deleted!"
             end
             job.orka_vm_id = nil
             state.orka_free_condvar.broadcast
-            puts "VM for job #{job.runner_name} deleted."
+            log "VM for job #{job.runner_name} deleted."
           end
         end
 
         if job.github_state == :queued
           if job.orka_start_attempts > 5
             # We've tried and failed. Move on.
-            puts "Giving up on job #{job.runner_name} after #{job.orka_start_attempts} start attempts."
+            log "Giving up on job #{job.runner_name} after #{job.orka_start_attempts} start attempts."
             job.github_state = :completed
           else
             # Try deploy again.
@@ -47,8 +50,8 @@ class OrkaStopProcessor
       break
     rescue => e
       @queue << job unless job&.orka_vm_id.nil? # Reschedule
-      $stderr.puts(e)
-      $stderr.puts(e.backtrace)
+      log(e, error: true)
+      log(e.backtrace, error: true)
       sleep(30)
     end
   end

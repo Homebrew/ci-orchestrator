@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
+require_relative "thread_runner"
+
 # Thread runner responsible for managing connection to GitHub.
-class GitHubWatcher
+class GitHubWatcher < ThreadRunner
   def run
-    puts "Started #{self.class.name}."
+    log "Started #{self.class.name}."
 
     loop do
       refresh_token
@@ -31,7 +33,7 @@ class GitHubWatcher
         token = state.github_client
                      .create_org_runner_registration_token(state.config.github_organisation)
       rescue Octokit::Error
-        $stderr.puts("Error retriving runner registration token.")
+        log("Error retriving runner registration token.", error: true)
         return
       end
 
@@ -43,8 +45,8 @@ class GitHubWatcher
   rescue ShutdownException
     Thread.current.kill
   rescue => e
-    $stderr.puts(e)
-    $stderr.puts(e.backtrace)
+    log(e, error: true)
+    log(e.backtrace, error: true)
   end
 
   def refresh_download_urls
@@ -60,12 +62,12 @@ class GitHubWatcher
           download_urls[candidate.os][candidate.architecture] = candidate.download_url
         end
       rescue Octokit::Error
-        $stderr.puts("Error retriving runner download URL.")
+        log("Error retriving runner download URL.", error: true)
         return
       end
 
       if download_urls.dig("osx", "x64").nil? || download_urls.dig("osx", "arm64").nil?
-        $stderr.puts("Did not find all expected runner downloads.")
+        log("Did not find all expected runner downloads.", error: true)
         return
       end
 
@@ -78,8 +80,8 @@ class GitHubWatcher
   rescue ShutdownException
     Thread.current.kill
   rescue => e
-    $stderr.puts(e)
-    $stderr.puts(e.backtrace)
+    log(e, error: true)
+    log(e.backtrace, error: true)
   end
 
   def redeliver_webhooks
@@ -89,7 +91,7 @@ class GitHubWatcher
     # Limit to production and the last 6 hours
     if ENV.fetch("RACK_ENV") == "development" ||
        (Time.now.to_i - lookback_time) > SharedState::MAX_WEBHOOK_REDELIVERY_WINDOW
-      puts "Not attempting to redeliver webhooks."
+      log "Not attempting to redeliver webhooks."
       state.last_webhook_check_time = Time.now.to_i
       return
     end
@@ -126,18 +128,18 @@ class GitHubWatcher
       true
     end
 
-    puts "Asking for redelivery of #{failed_deliveries.length} hook events..." unless failed_deliveries.empty?
+    log "Asking for redelivery of #{failed_deliveries.length} hook events..." unless failed_deliveries.empty?
     failed_deliveries.each do |delivery|
       client.redeliver_app_hook(delivery.id)
     rescue Octokit::Error
-      $stderr.puts("Failed to redeliver #{delivery.id}.")
+      log("Failed to redeliver #{delivery.id}.", error: true)
     end
-    puts "Redelivery requests sent." unless failed_deliveries.empty?
+    log "Redelivery requests sent." unless failed_deliveries.empty?
   rescue ShutdownException
     Thread.current.kill
   rescue => e
-    $stderr.puts(e)
-    $stderr.puts(e.backtrace)
+    log(e, error: true)
+    log(e.backtrace, error: true)
   end
 
   def delete_runners
@@ -145,7 +147,7 @@ class GitHubWatcher
     begin
       runners = state.github_client.org_runners(state.config.github_organisation).runners
     rescue Octokit::Error
-      $stderr.puts("Error retriving organisation runner list.")
+      log("Error retriving organisation runner list.", error: true)
       return
     end
 
@@ -156,12 +158,12 @@ class GitHubWatcher
       runner = runners.find { |candidate| candidate.name == job.runner_name }
       next true if runner.nil?
 
-      puts "Deleting organisation runner for #{job.runner_name}..."
+      log "Deleting organisation runner for #{job.runner_name}..."
       begin
         state.github_client.delete_org_runner(state.config.github_organisation, runner.id)
-        puts "Organisation runner for #{job.runner_name} deleted."
+        log "Organisation runner for #{job.runner_name} deleted."
       rescue Octokit::Error
-        $stderr.puts("Error deleting organisation runner for \"#{job.runner_name}\".")
+        log("Error deleting organisation runner for \"#{job.runner_name}\".", error: true)
         next false
       end
 
@@ -170,14 +172,14 @@ class GitHubWatcher
 
     state.jobs.replace(jobs_left)
 
-    puts "Marking #{expired_jobs.length} jobs as expired." unless expired_jobs.empty?
+    log "Marking #{expired_jobs.length} jobs as expired." unless expired_jobs.empty?
     expired_jobs.map! do |job|
       ExpiredJob.new(job.runner_name, expired_at: Time.now.to_i)
     end
     state.expired_jobs.concat(expired_jobs)
   rescue => e
-    $stderr.puts(e)
-    $stderr.puts(e.backtrace)
+    log(e, error: true)
+    log(e.backtrace, error: true)
   end
 
   def cleanup_expired_jobs
@@ -186,14 +188,14 @@ class GitHubWatcher
       job.expired_at < (current_time - 86400) # Forget after one day.
     end
   rescue => e
-    $stderr.puts(e)
-    $stderr.puts(e.backtrace)
+    log(e, error: true)
+    log(e.backtrace, error: true)
   end
 
   def save_state
     SharedState.instance.save
   rescue => e
-    $stderr.puts(e)
-    $stderr.puts(e.backtrace)
+    log(e, error: true)
+    log(e.backtrace, error: true)
   end
 end

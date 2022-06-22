@@ -30,8 +30,9 @@ class SharedState
   class Config
     attr_reader :state_file,
                 :orka_base_url, :orka_token, :orka_ssh_map,
-                :github_app_id,
-                :github_app_private_key, :github_webhook_secret,
+                :github_app_id, :github_app_private_key,
+                :github_client_id, :github_client_secret,
+                :github_webhook_secret,
                 :github_organisation, :github_installation_id,
                 :brew_vm_password
 
@@ -42,6 +43,8 @@ class SharedState
       @orka_ssh_map = JSON.parse(ENV.fetch("ORKA_SSH_MAP", "{}"))
       @github_app_id = ENV.fetch("GITHUB_APP_ID")
       @github_app_private_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV.fetch("GITHUB_APP_PRIVATE_KEY")))
+      @github_client_id = ENV.fetch("GITHUB_CLIENT_ID")
+      @github_client_secret = ENV.fetch("GITHUB_CLIENT_SECRET")
       @github_webhook_secret = ENV.fetch("GITHUB_WEBHOOK_SECRET")
       @github_organisation = ENV.fetch("GITHUB_ORGANISATION")
       @github_installation_id = ENV.fetch("GITHUB_INSTALLATION_ID")
