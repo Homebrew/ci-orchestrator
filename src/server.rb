@@ -128,8 +128,11 @@ class CIOrchestratorApp < Sinatra::Base
 
     halt 400, "Unsupported event \"#{event}\"!" if event != "workflow_job"
 
-    state = SharedState.instance
     workflow_job = payload["workflow_job"]
+    return if workflow_job.nil? # GitHub rarely sends webhooks with the workflow_job payload set to null.
+
+    state = SharedState.instance
+
     case payload["action"]
     when "queued"
       workflow_job["labels"].each do |label|
