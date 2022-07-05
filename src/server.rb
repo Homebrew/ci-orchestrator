@@ -108,6 +108,16 @@ class CIOrchestratorApp < Sinatra::Base
     TEXT
   end
 
+  post "/pause", require_auth: true do
+    SharedState.instance.pause
+    redirect "/", 302
+  end
+
+  post "/unpause", require_auth: true do
+    SharedState.instance.unpause
+    redirect "/", 302
+  end
+
   post "/hooks/github" do
     payload_body = request.body.read
     verify_webhook_signature(payload_body)

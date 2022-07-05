@@ -66,6 +66,13 @@ class OrkaStartProcessor < ThreadRunner
             next
           end
 
+          state.pause_mutex.synchronize do
+            while state.paused?
+              log "Queue is paused. Waiting for unpause..."
+              state.unpause_condvar.wait(state.pause_mutex)
+            end
+          end
+
           config = CONFIG_MAP[job.os]
           job.orka_setup_complete = false
 

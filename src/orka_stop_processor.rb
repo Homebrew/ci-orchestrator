@@ -22,6 +22,13 @@ class OrkaStopProcessor < ThreadRunner
 
         state = SharedState.instance
         state.orka_mutex.synchronize do
+          state.pause_mutex.synchronize do
+            while state.paused?
+              log "Queue is paused. Waiting for unpause..."
+              state.unpause_condvar.wait(state.pause_mutex)
+            end
+          end
+
           Thread.handle_interrupt(ShutdownException => :never) do
             log "Deleting VM for job #{job.runner_name}..."
             begin

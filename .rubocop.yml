@@ -22,7 +22,7 @@ Layout/LineLength:
   Max: 118
 
 Metrics/AbcSize:
-  Max: 100
+  Max: 125
 
 Metrics/BlockLength:
   Max: 100

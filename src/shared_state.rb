@@ -69,7 +69,8 @@ class SharedState
               :orka_mutex, :orka_free_condvar, :github_mutex, :github_metadata_condvar,
               :orka_start_processor, :orka_stop_processor, :github_watcher,
               :github_runner_metadata,
-              :jobs, :expired_jobs
+              :jobs, :expired_jobs,
+              :pause_mutex, :unpause_condvar
 
   attr_accessor :last_webhook_check_time
 
@@ -94,6 +95,10 @@ class SharedState
     @expired_jobs = []
     @last_webhook_check_time = Time.now.to_i
     @loaded = false
+    @paused = false
+
+    @pause_mutex = Mutex.new
+    @unpause_condvar = ConditionVariable.new
   end
 
   def load
@@ -106,6 +111,8 @@ class SharedState
         @jobs = state["jobs"]
         @expired_jobs = state["expired_jobs"]
         @last_webhook_check_time = state["last_webhook_check_time"]
+
+        pause if state["paused"]
       end
       @loaded = true
       puts "Loaded #{jobs.count} jobs from state file."
@@ -132,6 +139,7 @@ class SharedState
           if job.github_state == :queued
             if (Time.now.to_i - @last_webhook_check_time) > MAX_WEBHOOK_REDELIVERY_WINDOW
               # Just assume we're done if we've been gone for a while.
+              puts "Marking #{job.runner_name} as completed as we've been gone for a while."
               job.github_state = :completed
             else
               puts "Queueing #{job.runner_name} for deployment..."
@@ -163,6 +171,7 @@ class SharedState
         jobs:                    @jobs,
         expired_jobs:            @expired_jobs,
         last_webhook_check_time: @last_webhook_check_time,
+        paused:                  @paused,
       }
       File.write(@config.state_file, state.to_json)
     end
@@ -170,6 +179,23 @@ class SharedState
 
   def loaded?
     @loaded
+  end
+
+  def pause
+    @pause_mutex.synchronize do
+      @paused = true
+    end
+  end
+
+  def unpause
+    @pause_mutex.synchronize do
+      @paused = false
+      @unpause_condvar.broadcast
+    end
+  end
+
+  def paused?
+    @paused
   end
 
   def jwt_github_client
