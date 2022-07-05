@@ -5,7 +5,7 @@ RUN apk add --no-cache --virtual .build-deps git build-base
 
 WORKDIR /app
 COPY Gemfile* ./
-RUN bundle install && apk del .build-deps
+RUN bundle install --deployment && apk del .build-deps
 
 COPY src ./
 
