@@ -218,7 +218,11 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   def runner_for_job(workflow_job)
-    workflow_job["runner_name"] || workflow_job["labels"].find { |label| label =~ Job::NAME_REGEX }
+    if workflow_job["runner_name"].to_s.empty?
+      workflow_job["labels"].find { |label| label =~ Job::NAME_REGEX }
+    else
+      workflow_job["runner_name"]
+    end
   end
 
   def expire_missed_job(runner)
