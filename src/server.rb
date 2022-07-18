@@ -202,10 +202,7 @@ class CIOrchestratorApp < Sinatra::Base
       return
     end
 
-    if job.github_state != :completed
-      job.github_state = :completed
-      state.orka_stop_processor.queue << job
-    end
+    job.runner_completion_time = Time.now.to_i
 
     "Accepted"
   end

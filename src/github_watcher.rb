@@ -13,6 +13,7 @@ class GitHubWatcher < ThreadRunner
       redeliver_webhooks
       Thread.handle_interrupt(ShutdownException => :never) do
         delete_runners
+        timeout_completed_jobs
         cleanup_expired_jobs
         save_state
       end
@@ -177,6 +178,24 @@ class GitHubWatcher < ThreadRunner
       ExpiredJob.new(job.runner_name, expired_at: Time.now.to_i)
     end
     state.expired_jobs.concat(expired_jobs)
+  rescue => e
+    log(e, error: true)
+    log(e.backtrace, error: true)
+  end
+
+  def timeout_completed_jobs
+    state = SharedState.instance
+    current_time = Time.now.to_i
+    state.jobs.each do |job|
+      next if job.runner_completion_time.nil? || (current_time - job.runner_completion_time) < 600
+      next if job.github_state == :completed
+      next if job.orka_vm_id.nil?
+
+      log "#{job.runner_name} reported completion 10 minutes ago but GitHub hasn't reported back. Stopping runner..."
+
+      job.github_state = :completed
+      state.orka_stop_processor.queue << job
+    end
   rescue => e
     log(e, error: true)
     log(e.backtrace, error: true)

@@ -62,16 +62,16 @@ class OrkaStartProcessor < ThreadRunner
             state.orka_free_condvar.wait(state.orka_mutex)
           end
 
-          if job.github_state != :queued
-            log "Job #{job.runner_name} no longer in queued state, skipping."
-            next
-          end
-
           state.pause_mutex.synchronize do
             while state.paused?
               log "Queue is paused. Waiting for unpause..."
               state.unpause_condvar.wait(state.pause_mutex)
             end
+          end
+
+          if job.github_state != :queued
+            log "Job #{job.runner_name} no longer in queued state, skipping."
+            next
           end
 
           config = CONFIG_MAP[job.os]
