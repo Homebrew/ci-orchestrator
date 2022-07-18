@@ -45,12 +45,12 @@ class OrkaStartProcessor < ThreadRunner
 
         vm_metadata = unless job.arm64?
           {
-            token:               github_metadata.registration_token.token,
-            label:               job.runner_name,
-            name:                job.runner_name,
-            config_args:         "--ephemeral",
-            download:            github_metadata.download_urls["osx"]["x64"],
-            orchestrator_secret: job.secret,
+            runner_registration_token: github_metadata.registration_token.token,
+            runner_label:              job.runner_name,
+            runner_name:               job.runner_name,
+            runner_config_args:        "--ephemeral",
+            runner_download:           github_metadata.download_urls["osx"]["x64"],
+            orchestrator_secret:       job.secret,
           }
         end
 
