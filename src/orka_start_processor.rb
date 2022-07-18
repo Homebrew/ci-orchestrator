@@ -167,13 +167,11 @@ class OrkaStartProcessor < ThreadRunner
       --ephemeral
     ]
 
-    # COMPlus_ReadyToRun=0 needed because of https://github.com/dotnet/runtime/issues/64103
     cmd = "mkdir -p actions-runner && " \
           "cd actions-runner && " \
           "curl -L \"#{url}\" | tar xz && " \
           "echo 'GITHUB_ACTIONS_HOMEBREW_SELF_HOSTED=1' >> .env && " \
-          "plutil -insert EnvironmentVariables.COMPlus_ReadyToRun -string 0 bin/actions.runner.plist.template && " \
-          "COMPlus_ReadyToRun=0 ./config.sh #{config_args.join(" ")} && " \
+          "./config.sh #{config_args.join(" ")} && " \
           "./svc.sh install && " \
           "./svc.sh start"
 
