@@ -4,7 +4,7 @@ require "securerandom"
 
 # Information representing a CI job.
 class Job
-  NAME_REGEX = /\A(?<runner>\d+(?:\.\d+)?(?:-arm64)?)-(?<run_id>\d+)-(?<run_attempt>\d+)\z/
+  NAME_REGEX = /\A(?<runner>\d+(?:\.\d+)?(?:-arm64|-cross)?)-(?<run_id>\d+)-(?<run_attempt>\d+)\z/
 
   attr_reader :runner_name, :repository, :secret
   attr_accessor :github_state, :orka_vm_id, :orka_start_attempts, :runner_completion_time
