@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "sinatra/base"
+require "logger"
 require "openssl"
 require "json"
 require "securerandom"
@@ -12,7 +13,7 @@ class CIOrchestratorApp < Sinatra::Base
   configure do
     set :sessions, expire_after: 28800, same_site: :lax, skip: true
     set :session_store, Rack::Session::Pool
-    set :protection, reaction: :report
+    set :protection, reaction: :deny, logger: Logger.new($stderr)
   end
 
   set(:require_auth) do |enabled|
