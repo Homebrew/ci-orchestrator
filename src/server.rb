@@ -12,7 +12,7 @@ class CIOrchestratorApp < Sinatra::Base
   configure do
     set :sessions, expire_after: 28800, same_site: :lax, skip: true
     set :session_store, Rack::Session::Pool
-    set :protection, reaction: :warn
+    set :protection, reaction: :report
   end
 
   set(:require_auth) do |enabled|
@@ -136,37 +136,45 @@ class CIOrchestratorApp < Sinatra::Base
 
     case payload["action"]
     when "queued"
-      workflow_job["labels"].each do |label|
-        next if label !~ Job::NAME_REGEX
+      runner = runner_for_job(workflow_job)
+      next if runner.nil?
 
-        # If we've seen this job before, don't queue again.
-        next if state.expired_jobs.include?(label)
+      # If we've seen this job before, don't queue again.
+      next if state.expired_jobs.include?(runner)
 
-        job = Job.new(label, payload["repository"]["name"])
-        state.jobs << job
-        state.orka_start_processor.queue << job
+      # Job already exists?
+      job = state.job(runner)
+      unless job.nil?
+        $stderr.puts("Job #{runner} already known.")
+        next
       end
+
+      job = Job.new(runner, payload["repository"]["name"])
+      state.jobs << job
+      state.orka_start_processor.queue << job
     when "in_progress"
-      runners_for_job(workflow_job).each do |runner|
-        job = state.job(runner)
-        if job.nil?
-          expire_missed_job(runner)
-          next
-        end
+      runner = runner_for_job(workflow_job)
+      next if runner.nil?
 
-        job.github_state = :in_progress if job.github_state != :completed
+      job = state.job(runner)
+      if job.nil?
+        expire_missed_job(runner)
+        next
       end
+
+      job.github_state = :in_progress if job.github_state != :completed
     when "completed"
-      runners_for_job(workflow_job).each do |runner|
-        job = state.job(runner)
-        if job.nil?
-          expire_missed_job(runner)
-          next
-        end
+      runner = runner_for_job(workflow_job)
+      next if runner.nil?
 
-        job.github_state = :completed
-        state.orka_stop_processor.queue << job unless job.orka_vm_id.nil?
+      job = state.job(runner)
+      if job.nil?
+        expire_missed_job(runner)
+        next
       end
+
+      job.github_state = :completed
+      state.orka_stop_processor.queue << job unless job.orka_vm_id.nil?
     end
 
     "Accepted"
@@ -182,12 +190,8 @@ class CIOrchestratorApp < Sinatra::Base
     halt 400, "Signatures didn't match!"
   end
 
-  def runners_for_job(workflow_job)
-    if workflow_job["runner_name"]
-      [workflow_job["runner_name"]]
-    else
-      workflow_job["labels"].grep(Job::NAME_REGEX)
-    end
+  def runner_for_job(workflow_job)
+    workflow_job["runner_name"] || workflow_job["labels"].find { |label| label =~ Job::NAME_REGEX }
   end
 
   def expire_missed_job(runner)
