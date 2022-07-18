@@ -1,20 +1,23 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 # Information representing a CI job.
 class Job
   NAME_REGEX = /\A(?<runner>\d+(?:\.\d+)?(?:-arm64)?)-(?<run_id>\d+)-(?<run_attempt>\d+)\z/
 
-  attr_reader :runner_name, :repository
+  attr_reader :runner_name, :repository, :secret
   attr_accessor :github_state, :orka_vm_id, :orka_start_attempts
   attr_writer :orka_setup_complete
 
-  def initialize(runner_name, repository)
+  def initialize(runner_name, repository, secret: nil)
     @runner_name = runner_name
     @repository = repository
     @github_state = :queued
     @orka_vm_id = nil
     @orka_setup_complete = false
     @orka_start_attempts = 0
+    @secret = secret || SecureRandom.hex(32)
   end
 
   def os
@@ -38,7 +41,7 @@ class Job
   end
 
   def self.json_create(object)
-    job = new(object["runner_name"])
+    job = new(object["runner_name"], object["repository"], secret: object["secret"])
     job.github_state = object["github_state"].to_sym
     job.orka_vm_id = object["orka_vm_id"]
     job.orka_setup_complete = object["orka_setup_complete"]
@@ -50,10 +53,12 @@ class Job
     {
       JSON.create_id        => self.class.name,
       "runner_name"         => @runner_name,
+      "repository"          => @repository,
       "github_state"        => @github_state,
       "orka_vm_id"          => @orka_vm_id,
       "orka_setup_complete" => @orka_setup_complete,
       "orka_start_attempts" => @orka_start_attempts,
+      "secret"              => @secret,
     }.to_json(*args)
   end
 end

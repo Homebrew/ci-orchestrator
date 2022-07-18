@@ -62,7 +62,7 @@ class CIOrchestratorApp < Sinatra::Base
           end
 
           session[:username] = nil
-          halt 403, "Forbidden"
+          halt 403, "Forbidden."
         end
       end
 
@@ -174,8 +174,37 @@ class CIOrchestratorApp < Sinatra::Base
         next
       end
 
+      if job.github_state != :completed
+        job.github_state = :completed
+        state.orka_stop_processor.queue << job unless job.orka_vm_id.nil?
+      end
+    end
+
+    "Accepted"
+  end
+
+  post "/hooks/runner_job_completed" do
+    runner_name = params["runner_name"]
+    halt 400, "Invalid request." if runner_name.to_s.strip.empty?
+
+    state = SharedState.instance
+
+    job = state.job(runner_name)
+    return if job.nil?
+
+    if job.secret != params["orchestrator_secret"]
+      $stderr.puts("Secret mismatch for #{runner_name}!")
+      halt 403, "Forbidden."
+    end
+
+    if job.orka_vm_id.nil?
+      $stderr.puts("Got stop request for #{runner_name} from a VM that shouldn't exist.")
+      return
+    end
+
+    if job.github_state != :completed
       job.github_state = :completed
-      state.orka_stop_processor.queue << job unless job.orka_vm_id.nil?
+      state.orka_stop_processor.queue << job
     end
 
     "Accepted"
