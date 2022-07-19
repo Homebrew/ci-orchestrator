@@ -5,7 +5,7 @@
 class Ring
   include Enumerable
 
-  def initialize(size = 10)
+  def initialize(size = 100)
     @storage = Array.new(size)
     @position = 0
   end
