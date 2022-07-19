@@ -22,6 +22,10 @@ class CIOrchestratorApp < Sinatra::Base
     condition do
       request.session_options[:skip] = false
 
+      if (auth_failed = session.delete(:auth_failed))
+        halt auth_failed[:code], auth_failed[:message]
+      end
+
       if settings.development?
         session[:username] = "localhost"
         return
@@ -77,23 +81,31 @@ class CIOrchestratorApp < Sinatra::Base
   get "/auth/github" do
     request.session_options[:skip] = false
 
-    halt 400, "Invalid state." if params["state"] != session[:auth_state]
+    if params["state"] == session[:auth_state]
+      state = SharedState.instance
+      client = Octokit::Client.new(client_id:     state.config.github_client_id,
+                                   client_secret: state.config.github_client_secret)
 
-    state = SharedState.instance
-    client = Octokit::Client.new(client_id:     state.config.github_client_id,
-                                 client_secret: state.config.github_client_secret)
-
-    begin
-      token_response = client.exchange_code_for_token(params["code"])
-    rescue Octokit::Error => e
-      halt e.response_status, "Auth failed."
+      begin
+        token_response = client.exchange_code_for_token(params["code"])
+      rescue Octokit::Error => e
+        session[:auth_failed] = {
+          code:    e.response_status,
+          message: "Auth failed.",
+        }
+      else
+        session[:github_access_token] = {
+          token:   token_response.access_token,
+          issued:  Time.now.to_i,
+          expires: Time.now.to_i + token_response.expires_in,
+        }
+      end
+    else
+      session[:auth_failed] = {
+        code:    400,
+        message: "Invalid auth state.",
+      }
     end
-
-    session[:github_access_token] = {
-      token:   token_response.access_token,
-      issued:  Time.now.to_i,
-      expires: Time.now.to_i + token_response.expires_in,
-    }
 
     redirect "/", 302
   end
