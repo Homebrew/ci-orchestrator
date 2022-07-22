@@ -43,19 +43,7 @@ class OrkaStartProcessor < ThreadRunner
           end
         end
 
-        vm_metadata = unless job.arm64?
-          {
-            runner_registration_token: github_metadata.registration_token.token,
-            runner_label:              job.runner_name,
-            runner_name:               job.runner_name,
-            runner_config_args:        "--ephemeral",
-            runner_download:           github_metadata.download_urls["osx"]["x64"],
-            orchestrator_secret:       job.secret,
-          }
-        end
-
-        # TODO: node?
-        result = nil
+        vm_metadata, result = nil
         state.orka_mutex.synchronize do
           until state.free_slot?(job)
             log "Job #{job.runner_name} is waiting for a free slot."
@@ -72,6 +60,17 @@ class OrkaStartProcessor < ThreadRunner
           if job.github_state != :queued
             log "Job #{job.runner_name} no longer in queued state, skipping."
             next
+          end
+
+          vm_metadata = unless job.arm64?
+            {
+              runner_registration_token: github_metadata.registration_token.token,
+              runner_label:              job.runner_name,
+              runner_name:               job.runner_name,
+              runner_config_args:        "--ephemeral",
+              runner_download:           github_metadata.download_urls["osx"]["x64"],
+              orchestrator_secret:       job.secret,
+            }
           end
 
           config = CONFIG_MAP[job.os]
