@@ -149,7 +149,7 @@ class CIOrchestratorApp < Sinatra::Base
 
     case payload["action"]
     when "queued"
-      runner = runner_for_job(workflow_job)
+      runner = runner_for_job(workflow_job, only_unassigned: true)
       next if runner.nil?
 
       # If we've seen this job before, don't queue again.
@@ -229,10 +229,10 @@ class CIOrchestratorApp < Sinatra::Base
     halt 400, "Signatures didn't match!"
   end
 
-  def runner_for_job(workflow_job)
+  def runner_for_job(workflow_job, only_unassigned: false)
     if workflow_job["runner_name"].to_s.empty?
       workflow_job["labels"].find { |label| label =~ Job::NAME_REGEX }
-    else
+    elsif !only_unassigned
       workflow_job["runner_name"]
     end
   end
