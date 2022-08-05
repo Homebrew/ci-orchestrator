@@ -55,7 +55,7 @@
         <div class="col-lg">
           <div class="card p-3 h-100">
             <h5><%= runner.class.name %></h5>
-            <pre class="mb-0 d-flex flex-column-reverse" style="max-height: 15em; font-size: 75%"><% runner.log_history.each { |event| %><%= event.to_s + "\n" %><% } %></pre>
+            <pre class="mb-0 d-flex flex-column-reverse" style="max-height: 15em; font-size: 75%"><% runner.log_history.each { |event| %><%= h event.to_s + "\n" %><% } %></pre>
           </div>
         </div>
         <% end %>

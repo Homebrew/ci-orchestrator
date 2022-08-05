@@ -16,6 +16,10 @@ class CIOrchestratorApp < Sinatra::Base
     set :protection, reaction: :deny, logger: Logger.new($stderr)
   end
 
+  helpers do
+    include ERB::Util
+  end
+
   set(:require_auth) do |enabled|
     return unless enabled
 
