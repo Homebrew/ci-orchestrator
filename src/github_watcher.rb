@@ -13,6 +13,7 @@ class GitHubWatcher < ThreadRunner
       redeliver_webhooks
       Thread.handle_interrupt(ShutdownException => :never) do
         delete_runners
+        timeout_queued_and_deployed
         timeout_completed_jobs
         cleanup_expired_jobs
         save_state
@@ -178,6 +179,38 @@ class GitHubWatcher < ThreadRunner
       ExpiredJob.new(job.runner_name, expired_at: Time.now.to_i)
     end
     state.expired_jobs.concat(expired_jobs)
+  rescue => e
+    log(e, error: true)
+    log(e.backtrace, error: true)
+  end
+
+  def timeout_queued_and_deployed
+    state = SharedState.instance
+    current_time = Time.now.to_i
+    run_statuses = {}
+    state.jobs.each do |job|
+      next if job.orka_setup_time.nil? || (current_time - job.orka_setup_time) < 900
+      next if job.github_state != :queued
+      next if job.orka_vm_id.nil?
+
+      run_key = "#{job.run_id}-#{job.run_attempt}"
+
+      unless run_statuses.key?(run_key)
+        begin
+          repo = "#{state.config.github_organisation}/#{job.repository}"
+          run_statuses[run_key] = state.github_client.workflow_run_attempt(repo, job.run_id, job.run_attempt).status
+        rescue Octokit::Error
+          log("Error retriving workflow run information for #{run_key}.", error: true)
+          next
+        end
+      end
+
+      next if run_statuses[run_key] != "completed" # TODO: redeploy stuck runner
+
+      log "Run #{run_key} completed, but #{job.os} runner still queued. Destroying..."
+      job.github_state = :completed
+      state.orka_stop_processor.queue << job
+    end
   rescue => e
     log(e, error: true)
     log(e.backtrace, error: true)

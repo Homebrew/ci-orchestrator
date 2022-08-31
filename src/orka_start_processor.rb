@@ -74,7 +74,7 @@ class OrkaStartProcessor < ThreadRunner
           end
 
           config = CONFIG_MAP[job.os]
-          job.orka_setup_complete = false
+          job.orka_setup_time = nil
 
           Thread.handle_interrupt(ShutdownException => :never) do
             log "Deploying VM for job #{job.runner_name}..."
@@ -83,7 +83,7 @@ class OrkaStartProcessor < ThreadRunner
                           .deploy(vm_metadata:)
             job.orka_start_attempts += 1
             job.orka_vm_id = result.resource.name
-            job.orka_setup_complete = true unless vm_metadata.nil?
+            job.orka_setup_time = Time.now.to_i unless vm_metadata.nil?
             log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
           rescue Faraday::TimeoutError
             log("Timeout when deploying VM for job #{job.runner_name}.", error: true)
@@ -109,7 +109,7 @@ class OrkaStartProcessor < ThreadRunner
           else
             true
           end
-          job.orka_setup_complete = true if success
+          job.orka_setup_time = Time.now.to_i if success
           state.orka_stop_processor.queue << job if !success || job.github_state == :completed
         end
       end
