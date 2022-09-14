@@ -74,11 +74,11 @@
                 </thead>
                 <tbody>
                   <% state.github_runner_metadata.download_urls&.each do |os, arch_map| %>
-                  <% arch_map.each do |arch, url| %>
+                  <% arch_map.each do |arch, url_data| %>
                   <tr>
                     <%
                       basename = begin
-                        File.basename(URI.parse(url).path)
+                        File.basename(URI.parse(url_data[:url]).path)
                       rescue URI::InvalidURIError
                         "(parse error)"
                       end

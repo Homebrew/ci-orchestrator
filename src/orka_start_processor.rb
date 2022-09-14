@@ -62,13 +62,16 @@ class OrkaStartProcessor < ThreadRunner
             next
           end
 
+          runner_download = github_metadata.download_urls["osx"][job.arm64? ? "arm64" : "x64"]
+
           vm_metadata = unless job.arm64?
             {
               runner_registration_token: github_metadata.registration_token.token,
               runner_label:              job.runner_name,
               runner_name:               job.runner_name,
               runner_config_args:        "--ephemeral",
-              runner_download:           github_metadata.download_urls["osx"]["x64"],
+              runner_download:           runner_download[:url],
+              runner_download_sha256:    runner_download[:sha256],
               orchestrator_secret:       job.secret,
             }
           end
@@ -154,7 +157,7 @@ class OrkaStartProcessor < ThreadRunner
 
     log "Connected to VM for job #{job.runner_name} via SSH, configuring..."
 
-    url = state.github_runner_metadata.download_urls["osx"]["arm64"]
+    url = state.github_runner_metadata.download_urls["osx"]["arm64"][:url]
     org = state.config.github_organisation
     config_args = %W[
       --url "https://github.com/#{org}"

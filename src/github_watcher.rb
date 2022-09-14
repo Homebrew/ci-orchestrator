@@ -61,7 +61,10 @@ class GitHubWatcher < ThreadRunner
         download_urls = {}
         applications.each do |candidate|
           download_urls[candidate.os] ||= {}
-          download_urls[candidate.os][candidate.architecture] = candidate.download_url
+          download_urls[candidate.os][candidate.architecture] = {
+            url:    candidate.download_url,
+            sha256: candidate.sha256_checksum,
+          }
         end
       rescue Octokit::Error
         log("Error retriving runner download URL.", error: true)
