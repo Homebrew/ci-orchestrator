@@ -80,24 +80,37 @@ class OrkaStartProcessor < ThreadRunner
           job.orka_setup_time = nil
 
           Thread.handle_interrupt(ShutdownException => :never) do
-            log "Deploying VM for job #{job.runner_name}..."
-            result = state.orka_client
-                          .vm_configuration(config)
-                          .deploy(vm_metadata:)
-            job.orka_start_attempts += 1
-            job.orka_vm_id = result.resource.name
-            job.orka_setup_time = Time.now.to_i unless vm_metadata.nil?
-            log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
+            if job.orka_setup_timeout?
+              log "Dealing with previous timeout for job #{job.runner_name}..."
+              state.orka_client.vm_resource(config).instances.each do |instance|
+                if instance.ip == "N/A"
+                  log("Deleting stuck deployment #{instance.id}.", error: true)
+                  instance.delete
+                elsif !vm_metadata.nil? && state.jobs.none? { |other_job| instance.id == other_job.orka_vm_id }
+                  # This is probably our ID. If it isn't then something's gone wrong to get to this point.
+                  log "Found unassigned VM #{instance.id}. Assuming it's the VM for job #{job.runner_name}."
+                  job.orka_start_attempts += 1
+                  job.orka_vm_id = instance.id
+                  job.orka_setup_time = Time.now.to_i
+                end
+              end
+              job.orka_setup_timeout = false
+            end
+
+            if job.orka_vm_id.nil?
+              log "Deploying VM for job #{job.runner_name}..."
+              result = state.orka_client
+                            .vm_configuration(config)
+                            .deploy(vm_metadata:)
+              job.orka_start_attempts += 1
+              job.orka_vm_id = result.resource.name
+              job.orka_setup_time = Time.now.to_i unless vm_metadata.nil?
+              log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
+            end
           rescue Faraday::TimeoutError
             log("Timeout when deploying VM for job #{job.runner_name}.", error: true)
 
-            # Clean up the stuck deployment.
-            state.orka_client.vm_resource(config).instances.each do |instance|
-              next if instance.ip != "N/A"
-
-              log("Deleting stuck deployment #{instance.id}.", error: true)
-              instance.delete
-            end
+            job.orka_setup_timeout = true
 
             result = nil
             @queue << job # Reschedule

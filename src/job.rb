@@ -7,6 +7,7 @@ class Job
   NAME_REGEX = /\A(?<runner>\d+(?:\.\d+)?(?:-arm64|-cross)?)-(?<run_id>\d+)-(?<run_attempt>\d+)\z/
 
   attr_reader :runner_name, :repository, :secret
+  attr_writer :orka_setup_timeout
   attr_accessor :github_state, :orka_vm_id, :orka_setup_time, :orka_start_attempts, :runner_completion_time
 
   def initialize(runner_name, repository, secret: nil)
@@ -15,6 +16,7 @@ class Job
     @github_state = :queued
     @orka_vm_id = nil
     @orka_setup_time = nil
+    @orka_setup_timeout = false
     @orka_start_attempts = 0
     @secret = secret || SecureRandom.hex(32)
     @runner_completion_time = nil
@@ -38,6 +40,10 @@ class Job
 
   def orka_setup_complete?
     !@orka_setup_time.nil?
+  end
+
+  def orka_setup_timeout?
+    @orka_setup_timeout
   end
 
   def self.json_create(object)
