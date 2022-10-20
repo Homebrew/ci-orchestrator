@@ -12,6 +12,7 @@ class OrkaStartProcessor < ThreadRunner
     "11"          => "bigsur",
     "12"          => "monterey",
     "12-arm64"    => "monterey-arm64",
+    "13-arm64"    => "ventura-arm64",
   }.freeze
 
   attr_reader :queue
