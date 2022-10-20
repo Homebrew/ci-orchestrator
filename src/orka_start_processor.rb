@@ -2,7 +2,6 @@
 
 require_relative "thread_runner"
 
-require "net/ssh"
 require "timeout"
 
 # Thread runner responsible for deploying Orka VMs.
@@ -43,7 +42,6 @@ class OrkaStartProcessor < ThreadRunner
           end
         end
 
-        vm_metadata, result = nil
         state.orka_mutex.synchronize do
           until state.free_slot?(job)
             log "Job #{job.runner_name} is waiting for a free slot."
@@ -64,17 +62,15 @@ class OrkaStartProcessor < ThreadRunner
 
           runner_download = github_metadata.download_urls["osx"][job.arm64? ? "arm64" : "x64"]
 
-          vm_metadata = unless job.arm64?
-            {
-              runner_registration_token: github_metadata.registration_token.token,
-              runner_label:              job.runner_name,
-              runner_name:               job.runner_name,
-              runner_config_args:        "--ephemeral",
-              runner_download:           runner_download[:url],
-              runner_download_sha256:    runner_download[:sha256],
-              orchestrator_secret:       job.secret,
-            }
-          end
+          vm_metadata = {
+            runner_registration_token: github_metadata.registration_token.token,
+            runner_label:              job.runner_name,
+            runner_name:               job.runner_name,
+            runner_config_args:        "--ephemeral",
+            runner_download:           runner_download[:url],
+            runner_download_sha256:    runner_download[:sha256],
+            orchestrator_secret:       job.secret,
+          }
 
           config = CONFIG_MAP[job.os]
           job.orka_setup_time = nil
@@ -86,7 +82,7 @@ class OrkaStartProcessor < ThreadRunner
                 if instance.ip == "N/A"
                   log("Deleting stuck deployment #{instance.id}.", error: true)
                   instance.delete
-                elsif !vm_metadata.nil? && state.jobs.none? { |other_job| instance.id == other_job.orka_vm_id }
+                elsif state.jobs.none? { |other_job| instance.id == other_job.orka_vm_id }
                   # This is probably our ID. If it isn't then something's gone wrong to get to this point.
                   log "Found unassigned VM #{instance.id}. Assuming it's the VM for job #{job.runner_name}."
                   job.orka_start_attempts += 1
@@ -104,7 +100,7 @@ class OrkaStartProcessor < ThreadRunner
                             .deploy(vm_metadata:)
               job.orka_start_attempts += 1
               job.orka_vm_id = result.resource.name
-              job.orka_setup_time = Time.now.to_i unless vm_metadata.nil?
+              job.orka_setup_time = Time.now.to_i
               log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
             end
           rescue Faraday::TimeoutError
@@ -112,21 +108,10 @@ class OrkaStartProcessor < ThreadRunner
 
             job.orka_setup_timeout = true
 
-            result = nil
             @queue << job # Reschedule
           end
-        end
 
-        next if result.nil?
-
-        Thread.handle_interrupt(ShutdownException => :never) do
-          success = if vm_metadata.nil?
-            setup_actions_runner(result, job, github_metadata.registration_token.token)
-          else
-            true
-          end
-          job.orka_setup_time = Time.now.to_i if success
-          state.orka_stop_processor.queue << job if !success || job.github_state == :completed
+          state.orka_stop_processor.queue << job if !job.orka_vm_id.nil? && job.github_state == :completed
         end
       end
     rescue ShutdownException
@@ -137,73 +122,5 @@ class OrkaStartProcessor < ThreadRunner
       log(e.backtrace, error: true)
       sleep(30)
     end
-  end
-
-  private
-
-  def setup_actions_runner(deployment, job, token)
-    state = SharedState.instance
-    mapping = state.config.orka_ssh_map.fetch(deployment.ip, {})
-    ip = mapping.fetch("ip", deployment.ip)
-    port = deployment.ssh_port + mapping.fetch("port_offset", 0)
-
-    log "Connecting to VM for job #{job.runner_name} via SSH (#{ip}:#{port})..."
-
-    attempts = 0
-    begin
-      conn = Net::SSH.start(ip,
-                            "brew",
-                            password:        state.config.brew_vm_password,
-                            port:,
-                            non_interactive: true,
-                            verify_host_key: :never,
-                            timeout:         5)
-    rescue Net::SSH::Exception, SocketError, Errno::ECONNREFUSED,
-           Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::ECONNRESET,
-           Errno::ENETDOWN
-      attempts += 1
-      raise if attempts > 15 || job.orka_vm_id.nil?
-
-      sleep(15)
-      retry
-    end
-
-    log "Connected to VM for job #{job.runner_name} via SSH, configuring..."
-
-    url = state.github_runner_metadata.download_urls["osx"]["arm64"][:url]
-    org = state.config.github_organisation
-    config_args = %W[
-      --url "https://github.com/#{org}"
-      --token "#{token}"
-      --work _work
-      --unattended
-      --labels "#{job.runner_name}"
-      --name "#{job.runner_name}"
-      --replace
-      --ephemeral
-    ]
-
-    cmd = "mkdir -p actions-runner && " \
-          "cd actions-runner && " \
-          "curl -L \"#{url}\" | tar xz && " \
-          "echo 'GITHUB_ACTIONS_HOMEBREW_SELF_HOSTED=1' >> .env && " \
-          "./config.sh #{config_args.join(" ")} && " \
-          "./svc.sh install && " \
-          "./svc.sh start"
-
-    # Net::SSH doesn't handle timeouts well :(
-    Timeout.timeout(120) do
-      conn.exec!(cmd)
-    end
-
-    log "VM for job #{job.runner_name} configured."
-    true
-  rescue => e
-    log("VM configuration for job #{job.runner_name} failed.", error: true)
-    log(e, error: true)
-    log(e.backtrace, error: true)
-    false
-  ensure
-    conn.close if conn && !conn.closed?
   end
 end
