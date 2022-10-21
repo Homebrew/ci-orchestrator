@@ -5,9 +5,10 @@ require_relative "log_event"
 
 # The base thread runner class.
 class ThreadRunner
-  attr_reader :log_history
+  attr_reader :name, :log_history
 
-  def initialize
+  def initialize(name = self.class.name)
+    @name = name
     @log_history = Ring.new
   end
 

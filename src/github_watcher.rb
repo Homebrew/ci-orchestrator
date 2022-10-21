@@ -5,7 +5,7 @@ require_relative "thread_runner"
 # Thread runner responsible for managing connection to GitHub.
 class GitHubWatcher < ThreadRunner
   def run
-    log "Started #{self.class.name}."
+    log "Started #{name}."
 
     loop do
       refresh_token

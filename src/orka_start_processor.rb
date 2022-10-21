@@ -17,13 +17,13 @@ class OrkaStartProcessor < ThreadRunner
 
   attr_reader :queue
 
-  def initialize
-    super
+  def initialize(name)
+    super("#{self.class.name} (#{name})")
     @queue = Queue.new
   end
 
   def run
-    log "Started #{self.class.name}."
+    log "Started #{name}."
 
     job = nil
     loop do

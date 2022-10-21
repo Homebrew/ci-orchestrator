@@ -2,6 +2,8 @@
 
 require "securerandom"
 
+require_relative "queue_types"
+
 # Information representing a CI job.
 class Job
   NAME_REGEX = /\A(?<runner>\d+(?:\.\d+)?(?:-arm64|-cross)?)-(?<run_id>\d+)-(?<run_attempt>\d+)\z/
@@ -44,6 +46,10 @@ class Job
 
   def orka_setup_timeout?
     @orka_setup_timeout
+  end
+
+  def queue_type
+    arm64? ? QueueTypes::MACOS_ARM64 : QueueTypes::MACOS_X86_64
   end
 
   def self.json_create(object)

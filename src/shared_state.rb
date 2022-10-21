@@ -67,7 +67,7 @@ class SharedState
   attr_reader :config,
               :orka_client,
               :orka_mutex, :orka_free_condvar, :github_mutex, :github_metadata_condvar,
-              :orka_start_processor, :orka_stop_processor, :github_watcher,
+              :orka_start_processors, :orka_stop_processor, :github_watcher,
               :github_runner_metadata,
               :jobs, :expired_jobs,
               :pause_mutex, :unpause_condvar
@@ -85,7 +85,9 @@ class SharedState
     @github_metadata_condvar = ConditionVariable.new
     @file_mutex = Mutex.new
 
-    @orka_start_processor = OrkaStartProcessor.new
+    @orka_start_processors = QueueTypes.to_h do |type|
+      [type, OrkaStartProcessor.new(QueueTypes.name(type))]
+    end
     @orka_stop_processor = OrkaStopProcessor.new
     @github_watcher = GitHubWatcher.new
 
@@ -143,7 +145,7 @@ class SharedState
               job.github_state = :completed
             else
               puts "Queueing #{job.runner_name} for deployment..."
-              @orka_start_processor.queue << job
+              @orka_start_processors[job.queue_type].queue << job
             end
           else
             puts "Ready to expire #{job.runner_name}."
@@ -221,7 +223,7 @@ class SharedState
   end
 
   def thread_runners
-    [@orka_start_processor, @orka_stop_processor, @github_watcher].freeze
+    [*@orka_start_processors.values, @orka_stop_processor, @github_watcher].freeze
   end
 
   def job(runner_name)

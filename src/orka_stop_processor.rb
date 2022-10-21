@@ -12,7 +12,7 @@ class OrkaStopProcessor < ThreadRunner
   end
 
   def run
-    log "Started #{self.class.name}."
+    log "Started #{name}."
 
     job = nil
     loop do
@@ -49,7 +49,7 @@ class OrkaStopProcessor < ThreadRunner
             job.github_state = :completed
           else
             # Try deploy again.
-            state.orka_start_processor.queue << job
+            state.orka_start_processors[job.queue_type].queue << job
           end
         end
       end
