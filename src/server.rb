@@ -164,7 +164,7 @@ class CIOrchestratorApp < Sinatra::Base
         next
       end
 
-      job = Job.new(runner, payload["repository"]["name"])
+      job = Job.new(runner, payload["repository"]["name"], workflow_job["id"])
       state.jobs << job
       state.orka_start_processors[job.queue_type].queue << job
     when "in_progress"

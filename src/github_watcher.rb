@@ -4,6 +4,8 @@ require_relative "thread_runner"
 
 # Thread runner responsible for managing connection to GitHub.
 class GitHubWatcher < ThreadRunner
+  ENABLE_STUCK_RUNNER_REDEPLOYMENT = true
+
   def run
     log "Started #{name}."
 
@@ -197,10 +199,10 @@ class GitHubWatcher < ThreadRunner
       next if job.orka_vm_id.nil?
 
       run_key = "#{job.run_id}-#{job.run_attempt}"
+      repo = "#{state.config.github_organisation}/#{job.repository}"
 
       unless run_statuses.key?(run_key)
         begin
-          repo = "#{state.config.github_organisation}/#{job.repository}"
           run_statuses[run_key] = state.github_client.workflow_run_attempt(repo, job.run_id, job.run_attempt).status
         rescue Octokit::Error
           log("Error retriving workflow run information for #{run_key}.", error: true)
@@ -208,11 +210,29 @@ class GitHubWatcher < ThreadRunner
         end
       end
 
-      next if run_statuses[run_key] != "completed" # TODO: redeploy stuck runner
+      job_state = if run_statuses[run_key] == "completed"
+        "completed"
+      elsif job.github_id.nil? # Temporary migration condition
+        "queued"
+      else
+        state.github_client.workflow_run_job(repo, job.github_id).status
+      end
 
-      log "Run #{run_key} completed, but #{job.os} runner still queued. Destroying..."
-      job.github_state = :completed
-      state.orka_stop_processor.queue << job
+      case job_state
+      when "queued"
+        if ENABLE_STUCK_RUNNER_REDEPLOYMENT && job.arm64? # Limiting scope for now to track known issues
+          log "Job #{run_key} is likely stuck. Redeploying..."
+          job.orka_setup_time = nil
+          state.orka_stop_processor.queue << job
+        end
+      when "in_progress"
+        log "Job #{run_key} in progress, but #{job.os} runner still queued. Marking as in progress..."
+        job.github_state = :in_progress
+      when "completed"
+        log "Job #{run_key} completed, but #{job.os} runner still queued. Destroying..."
+        job.github_state = :completed
+        state.orka_stop_processor.queue << job
+      end
     end
   rescue => e
     log(e, error: true)
