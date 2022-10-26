@@ -47,17 +47,22 @@ class OrkaStartProcessor < ThreadRunner
           end
         end
 
+        @pause_mutex.synchronize do
+          while paused?
+            log "Queue is paused. Waiting for unpause..."
+            @unpause_condvar.wait(@pause_mutex)
+          end
+        end
+
         state.orka_mutex.synchronize do
           until state.free_slot?(job)
             log "Job #{job.runner_name} is waiting for a free slot."
             state.orka_free_condvar.wait(state.orka_mutex)
           end
 
-          @pause_mutex.synchronize do
-            while paused?
-              log "Queue is paused. Waiting for unpause..."
-              @unpause_condvar.wait(@pause_mutex)
-            end
+          if paused?
+            @queue << job
+            next
           end
 
           if job.github_state != :queued

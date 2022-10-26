@@ -24,13 +24,18 @@ class OrkaStopProcessor < ThreadRunner
         job = @queue.pop
         next if job.orka_vm_id.nil?
 
+        @pause_mutex.synchronize do
+          while paused?
+            log "Queue is paused. Waiting for unpause..."
+            @unpause_condvar.wait(@pause_mutex)
+          end
+        end
+
         state = SharedState.instance
         state.orka_mutex.synchronize do
-          @pause_mutex.synchronize do
-            while paused?
-              log "Queue is paused. Waiting for unpause..."
-              @unpause_condvar.wait(@pause_mutex)
-            end
+          if paused?
+            @queue << job
+            next
           end
 
           Thread.handle_interrupt(ShutdownException => :never) do

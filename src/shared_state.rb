@@ -221,16 +221,12 @@ class SharedState
   private
 
   def load_pause_data(pause_data)
-    if [true, false].include?(pause_data) # backcompat
-      thread_runners.each { |thread_runner| thread_runner.pause if thread_runner.pausable? } if pause_data
-    else
-      pause_data.each do |key|
-        thread_runner = thread_runners.find { |runner| runner.name == key }
-        if thread_runner.nil?
-          $stderr.puts("Can't find thread runner #{key} to pause.")
-        elsif thread_runner.pausable?
-          thread_runner.pause
-        end
+    pause_data.each do |key|
+      thread_runner = thread_runners.find { |runner| runner.name == key }
+      if thread_runner.nil?
+        $stderr.puts("Can't find thread runner #{key} to pause.")
+      elsif thread_runner.pausable?
+        thread_runner.pause
       end
     end
   end
