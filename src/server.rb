@@ -125,12 +125,32 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   post "/pause", require_auth: true do
-    SharedState.instance.pause
+    thread_runner_name = params["thread_runner"]
+    if thread_runner_name
+      thread_runner = SharedState.instance.thread_runners.find { |runner| runner.name == thread_runner_name }
+      if thread_runner&.pausable?
+        thread_runner.pause
+      else
+        halt 400, "Invalid thread runner."
+      end
+    else
+      SharedState.instance.thread_runners.each { |runner| runner.pause if runner.pausable? }
+    end
     redirect "/", 302
   end
 
   post "/unpause", require_auth: true do
-    SharedState.instance.unpause
+    thread_runner_name = params["thread_runner"]
+    if thread_runner_name
+      thread_runner = SharedState.instance.thread_runners.find { |runner| runner.name == thread_runner_name }
+      if thread_runner&.pausable?
+        thread_runner.unpause
+      else
+        halt 400, "Invalid thread runner."
+      end
+    else
+      SharedState.instance.thread_runners.each { |runner| runner.unpause if runner.pausable? }
+    end
     redirect "/", 302
   end
 

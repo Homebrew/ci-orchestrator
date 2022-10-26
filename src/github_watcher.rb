@@ -212,8 +212,6 @@ class GitHubWatcher < ThreadRunner
 
       job_state = if run_statuses[run_key] == "completed"
         "completed"
-      elsif job.github_id.nil? # Temporary migration condition
-        "queued"
       else
         state.github_client.workflow_run_job(repo, job.github_id).status
       end

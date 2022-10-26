@@ -11,6 +11,10 @@ class OrkaStopProcessor < ThreadRunner
     @queue = Queue.new
   end
 
+  def pausable?
+    true
+  end
+
   def run
     log "Started #{name}."
 
@@ -22,10 +26,10 @@ class OrkaStopProcessor < ThreadRunner
 
         state = SharedState.instance
         state.orka_mutex.synchronize do
-          state.pause_mutex.synchronize do
-            while state.paused?
+          @pause_mutex.synchronize do
+            while paused?
               log "Queue is paused. Waiting for unpause..."
-              state.unpause_condvar.wait(state.pause_mutex)
+              @unpause_condvar.wait(@pause_mutex)
             end
           end
 

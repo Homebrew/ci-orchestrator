@@ -69,8 +69,7 @@ class SharedState
               :orka_mutex, :orka_free_condvar, :github_mutex, :github_metadata_condvar,
               :orka_start_processors, :orka_stop_processor, :github_watcher,
               :github_runner_metadata,
-              :jobs, :expired_jobs,
-              :pause_mutex, :unpause_condvar
+              :jobs, :expired_jobs
 
   attr_accessor :last_webhook_check_time
 
@@ -97,10 +96,6 @@ class SharedState
     @expired_jobs = []
     @last_webhook_check_time = Time.now.to_i
     @loaded = false
-    @paused = false
-
-    @pause_mutex = Mutex.new
-    @unpause_condvar = ConditionVariable.new
   end
 
   def load
@@ -114,7 +109,7 @@ class SharedState
         @expired_jobs = state["expired_jobs"]
         @last_webhook_check_time = state["last_webhook_check_time"]
 
-        pause if state["paused"]
+        load_pause_data state["paused"]
       end
       @loaded = true
       puts "Loaded #{jobs.count} jobs from state file."
@@ -173,7 +168,12 @@ class SharedState
         jobs:                    @jobs,
         expired_jobs:            @expired_jobs,
         last_webhook_check_time: @last_webhook_check_time,
-        paused:                  @paused,
+        paused:                  thread_runners.filter_map do |thread_runner|
+          next unless thread_runner.pausable?
+          next unless thread_runner.paused?
+
+          thread_runner.name
+        end,
       }
       File.write(@config.state_file, state.to_json)
     end
@@ -181,23 +181,6 @@ class SharedState
 
   def loaded?
     @loaded
-  end
-
-  def pause
-    @pause_mutex.synchronize do
-      @paused = true
-    end
-  end
-
-  def unpause
-    @pause_mutex.synchronize do
-      @paused = false
-      @unpause_condvar.broadcast
-    end
-  end
-
-  def paused?
-    @paused
   end
 
   def jwt_github_client
@@ -233,5 +216,22 @@ class SharedState
   def free_slot?(waiting_job)
     max_slots = waiting_job.arm64? ? MAX_ARM_SLOTS : MAX_INTEL_SLOTS
     @jobs.count { |job| job.arm64? == waiting_job.arm64? && !job.orka_vm_id.nil? } < max_slots
+  end
+
+  private
+
+  def load_pause_data(pause_data)
+    if [true, false].include?(pause_data) # backcompat
+      thread_runners.each { |thread_runner| thread_runner.pause if thread_runner.pausable? } if pause_data
+    else
+      pause_data.each do |key|
+        thread_runner = thread_runners.find { |runner| runner.name == key }
+        if thread_runner.nil?
+          $stderr.puts("Can't find thread runner #{key} to pause.")
+        elsif thread_runner.pausable?
+          thread_runner.pause
+        end
+      end
+    end
   end
 end

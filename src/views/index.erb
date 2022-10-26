@@ -54,7 +54,22 @@
         <% state.thread_runners.each do |runner| %>
         <div class="col-lg">
           <div class="card p-3 h-100">
-            <h5><%= runner.name %></h5>
+            <div style="display: flex">
+              <h5 class="flex-fill lh-base mb-3"><%= runner.name %></h5>
+              <% if runner.pausable? %>
+              <% if runner.paused? %>
+              <form action="/unpause" method="post">
+                <input type="hidden" name="thread_runner" value="<%= runner.name %>">
+                <button type="submit" class="btn btn-success">Unpause</button>
+              </form>
+              <% else %>
+              <form action="/pause" method="post">
+                <input type="hidden" name="thread_runner" value="<%= runner.name %>">
+                <button type="submit" class="btn btn-danger">Pause</button>
+              </form>
+              <% end %>
+              <% end %>
+            </div>
             <pre class="mb-0 d-flex flex-column-reverse" style="max-height: 15em; font-size: 75%"><% runner.log_history.each { |event| %><%= h event.to_s + "\n" %><% } %></pre>
           </div>
         </div>
@@ -83,7 +98,7 @@
                         "(parse error)"
                       end
                     %>
-                    <td><a href="<%= url %>"><%= basename %></a></td>
+                    <td><a href="<%= url_data[:url] %>"><%= basename %></a></td>
                     <td><%= os %></td>
                     <td><%= arch %></td>
                   </tr>
@@ -100,15 +115,19 @@
         <div class="col-lg">
           <div class="card p-3 h-100">
             <h5>Pause</h5>
-            <% if state.paused? %>
+            <% pausable_count = state.thread_runners.count { |runner| runner.pausable? } %>
+            <% paused_count = state.thread_runners.count { |runner| runner.pausable? && runner.paused? } %>
+            <% if paused_count == pausable_count %>
             <p>Queue is currently <span class="text-danger">paused</span>.</p>
             <form action="/unpause" method="post">
-              <button type="submit" class="btn btn-success">Unpause</button>
+              <button type="submit" class="btn btn-success">Unpause all</button>
             </form>
+            <% elsif paused_count > 0 %>
+            <p>Queue is currently <span class="text-warning">partially paused</span>.</p>
             <% else %>
             <p>Queue is currently <span class="text-success">running</span>.</p>
             <form action="/pause" method="post">
-              <button type="submit" class="btn btn-danger">Pause</button>
+              <button type="submit" class="btn btn-danger">Pause all</button>
             </form>
             <p class="mb-0 mt-3">Pausing will not interrupt VMs mid-deployment. Please allow a few minutes for all Orka API operations to cease.</p>
             <% end %>

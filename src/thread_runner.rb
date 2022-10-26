@@ -10,6 +10,36 @@ class ThreadRunner
   def initialize(name = self.class.name)
     @name = name
     @log_history = Ring.new
+    @paused = false
+    @pause_mutex = Mutex.new
+    @unpause_condvar = ConditionVariable.new
+  end
+
+  def pausable?
+    false
+  end
+
+  def paused?
+    raise "Runner not pausable." unless pausable?
+
+    @paused
+  end
+
+  def pause
+    raise "Runner not pausable." unless pausable?
+
+    @pause_mutex.synchronize do
+      @paused = true
+    end
+  end
+
+  def unpause
+    raise "Runner not pausable." unless pausable?
+
+    @pause_mutex.synchronize do
+      @paused = false
+      @unpause_condvar.broadcast
+    end
   end
 
   def run
