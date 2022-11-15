@@ -211,7 +211,7 @@ class SharedState
   end
 
   def free_slot?(waiting_job)
-    max_slots = QueueTypes.slots(job.queue_type)
+    max_slots = QueueTypes.slots(waiting_job.queue_type)
     @jobs.count { |job| job.queue_type == waiting_job.queue_type && !job.orka_vm_id.nil? } < max_slots
   end
 
