@@ -50,7 +50,13 @@ class Job
   end
 
   def queue_type
-    arm64? ? QueueTypes::MACOS_ARM64 : QueueTypes::MACOS_X86_64
+    if arm64?
+      QueueTypes::MACOS_ARM64
+    elsif os.partition("-").first < "13"
+      QueueTypes::MACOS_X86_64_LEGACY
+    else
+      QueueTypes::MACOS_X86_64
+    end
   end
 
   def self.json_create(object)

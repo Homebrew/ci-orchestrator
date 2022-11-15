@@ -12,6 +12,7 @@ class OrkaStartProcessor < ThreadRunner
     "11"          => "bigsur",
     "12"          => "monterey",
     "12-arm64"    => "monterey-arm64",
+    "13"          => "ventura",
     "13-arm64"    => "ventura-arm64",
   }.freeze
 

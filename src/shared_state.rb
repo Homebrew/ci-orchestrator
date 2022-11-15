@@ -61,9 +61,6 @@ class SharedState
 
   MAX_WEBHOOK_REDELIVERY_WINDOW = 21600
 
-  MAX_INTEL_SLOTS = 12
-  MAX_ARM_SLOTS = 6
-
   attr_reader :config,
               :orka_client,
               :orka_mutex, :orka_free_condvar, :github_mutex, :github_metadata_condvar,
@@ -214,8 +211,8 @@ class SharedState
   end
 
   def free_slot?(waiting_job)
-    max_slots = waiting_job.arm64? ? MAX_ARM_SLOTS : MAX_INTEL_SLOTS
-    @jobs.count { |job| job.arm64? == waiting_job.arm64? && !job.orka_vm_id.nil? } < max_slots
+    max_slots = QueueTypes.slots(job.queue_type)
+    @jobs.count { |job| job.queue_type == waiting_job.queue_type && !job.orka_vm_id.nil? } < max_slots
   end
 
   private
