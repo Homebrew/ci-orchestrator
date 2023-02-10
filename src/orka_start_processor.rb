@@ -114,6 +114,12 @@ class OrkaStartProcessor < ThreadRunner
               job.orka_setup_time = Time.now.to_i
               log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
             end
+          rescue Faraday::ServerError => e
+            log("Error 500 deploying VM for job #{job.runner_name}: #{e.response[:body]}", error: true)
+
+            job.orka_setup_timeout = true
+
+            @queue << job # Reschedule
           rescue Faraday::TimeoutError
             log("Timeout when deploying VM for job #{job.runner_name}.", error: true)
 
