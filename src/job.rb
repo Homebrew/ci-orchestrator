@@ -70,7 +70,7 @@ class Job
     job
   end
 
-  def to_json(*args)
+  def to_json(*)
     {
       JSON.create_id           => self.class.name,
       "runner_name"            => @runner_name,
@@ -83,6 +83,6 @@ class Job
       "orka_start_attempts"    => @orka_start_attempts,
       "secret"                 => @secret,
       "runner_completion_time" => @runner_completion_time,
-    }.to_json(*args)
+    }.to_json(*)
   end
 end

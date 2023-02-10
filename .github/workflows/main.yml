@@ -24,7 +24,7 @@ jobs:
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: "3.1"
+        ruby-version: "3.2"
         bundler-cache: true
 
     - name: Run RuboCop
@@ -50,7 +50,7 @@ jobs:
 
     - name: Authenticate to Google Cloud
       id: gcloud-auth
-      uses: google-github-actions/auth@v0
+      uses: google-github-actions/auth@v1
       with:
         token_format: access_token
         workload_identity_provider: projects/${{ secrets.GCP_PROJECT_NUM }}/locations/global/workloadIdentityPools/ci-orchestrator-deploy/providers/github-actions
@@ -69,7 +69,7 @@ jobs:
         docker push "$IMAGE"
 
     - name: Get GKE credentials
-      uses: google-github-actions/get-gke-credentials@v0
+      uses: google-github-actions/get-gke-credentials@v1
       with:
         cluster_name: ci-orchestrator
         location: us-central1-c

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+Regexp.timeout = 1
+
 require_relative "server"
 
 # We have a second pod that assigns the correct IP.

@@ -25,11 +25,11 @@ class ExpiredJob
     new(object["runner_name"], expired_at: object["expired_at"])
   end
 
-  def to_json(*args)
+  def to_json(*)
     {
       JSON.create_id => self.class.name,
       "runner_name"  => @runner_name,
       "expired_at"   => @expired_at,
-    }.to_json(*args)
+    }.to_json(*)
   end
 end
