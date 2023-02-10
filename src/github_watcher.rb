@@ -4,8 +4,6 @@ require_relative "thread_runner"
 
 # Thread runner responsible for managing connection to GitHub.
 class GitHubWatcher < ThreadRunner
-  ENABLE_STUCK_RUNNER_REDEPLOYMENT = true
-
   def run
     log "Started #{name}."
 
@@ -218,11 +216,9 @@ class GitHubWatcher < ThreadRunner
 
       case job_state
       when "queued"
-        if ENABLE_STUCK_RUNNER_REDEPLOYMENT && job.arm64? # Limiting scope for now to track known issues
-          log "Job #{run_key} is likely stuck. Redeploying..."
-          job.orka_setup_time = nil
-          state.orka_stop_processor.queue << job
-        end
+        log "Job #{run_key} is likely stuck. Redeploying..."
+        job.orka_setup_time = nil
+        state.orka_stop_processor.queue << job
       when "in_progress"
         log "Job #{run_key} in progress, but #{job.os} runner still queued. Marking as in progress..."
         job.github_state = :in_progress
