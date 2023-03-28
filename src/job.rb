@@ -6,7 +6,8 @@ require_relative "queue_types"
 
 # Information representing a CI job.
 class Job
-  NAME_REGEX = /\A(?<runner>\d+(?:\.\d+)?(?:-arm64|-cross)?)-(?<run_id>\d+)-(?<run_attempt>\d+)\z/
+  NAME_REGEX =
+    /\A(?<runner>\d+(?:\.\d+)?(?:-arm64|-cross)?)-(?<run_id>\d+)-(?<run_attempt>\d+)(?<deps>-deps)?\z/
 
   attr_reader :runner_name, :repository, :github_id, :secret
   attr_writer :orka_setup_timeout
@@ -39,6 +40,10 @@ class Job
 
   def run_attempt
     @runner_name[NAME_REGEX, :run_attempt]
+  end
+
+  def deps
+    @runner_name[NAME_REGEX, :deps]
   end
 
   def orka_setup_complete?
