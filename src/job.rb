@@ -47,7 +47,7 @@ class Job
   end
 
   def orka_setup_complete?
-    !@orka_setup_time.nil?
+    !@orka_setup_time.nil? && !@orka_setup_timeout
   end
 
   def orka_setup_timeout?

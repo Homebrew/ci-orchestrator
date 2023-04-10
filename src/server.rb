@@ -217,19 +217,27 @@ class CIOrchestratorApp < Sinatra::Base
     "Accepted"
   end
 
-  post "/hooks/runner_job_completed" do
-    runner_name = params["runner_name"]
-    halt 400, "Invalid request." if runner_name.to_s.strip.empty?
-
-    state = SharedState.instance
-
-    job = state.job(runner_name)
+  post "/hooks/runner_ready" do
+    job = verify_runner_hook(params)
     return if job.nil?
 
-    if job.secret != params["orchestrator_secret"]
-      $stderr.puts("Secret mismatch for #{runner_name}!")
-      halt 403, "Forbidden."
+    vm_id = params["orka_vm_id"]
+
+    if job.orka_vm_id.nil?
+      job.orka_vm_id = vm_id
+      job.orka_setup_time = Time.now.to_i
+      job.orka_setup_timeout = false
+    elsif job.orka_vm_id != vm_id
+      $stderr.puts("Got ready request for #{runner_name} from an unexpected VM (#{job.orka_vm_id} != #{vm_id}).")
+      return
     end
+
+    "Accepted"
+  end
+
+  post "/hooks/runner_job_completed" do
+    job = verify_runner_hook(params)
+    return if job.nil?
 
     if job.orka_vm_id.nil?
       $stderr.puts("Got stop request for #{runner_name} from a VM that shouldn't exist.")
@@ -249,6 +257,21 @@ class CIOrchestratorApp < Sinatra::Base
     return if Rack::Utils.secure_compare(signature, request.env["HTTP_X_HUB_SIGNATURE_256"])
 
     halt 400, "Signatures didn't match!"
+  end
+
+  def verify_runner_hook(params)
+    runner_name = params["runner_name"]
+    halt 400, "Invalid request." if runner_name.to_s.strip.empty?
+
+    job = SharedState.instance.job(runner_name)
+    return if job.nil?
+
+    if job.secret != params["orchestrator_secret"]
+      $stderr.puts("Secret mismatch for #{runner_name}!")
+      halt 403, "Forbidden."
+    end
+
+    job
   end
 
   def runner_for_job(workflow_job, only_unassigned: false)

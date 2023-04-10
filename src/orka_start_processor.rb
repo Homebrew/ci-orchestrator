@@ -87,23 +87,6 @@ class OrkaStartProcessor < ThreadRunner
           job.orka_setup_time = nil
 
           Thread.handle_interrupt(ShutdownException => :never) do
-            if job.orka_setup_timeout?
-              log "Dealing with previous timeout for job #{job.runner_name}..."
-              state.orka_client.vm_resource(config).instances.each do |instance|
-                if instance.ip == "N/A"
-                  log("Deleting stuck deployment #{instance.id}.", error: true)
-                  instance.delete
-                elsif state.jobs.none? { |other_job| instance.id == other_job.orka_vm_id }
-                  # This is probably our ID. If it isn't then something's gone wrong to get to this point.
-                  log "Found unassigned VM #{instance.id}. Assuming it's the VM for job #{job.runner_name}."
-                  job.orka_start_attempts += 1
-                  job.orka_vm_id = instance.id
-                  job.orka_setup_time = Time.now.to_i
-                end
-              end
-              job.orka_setup_timeout = false
-            end
-
             if job.orka_vm_id.nil?
               log "Deploying VM for job #{job.runner_name}..."
               result = state.orka_client
@@ -118,14 +101,12 @@ class OrkaStartProcessor < ThreadRunner
             log("Error 500 deploying VM for job #{job.runner_name}: #{e.response[:body]}", error: true)
 
             job.orka_setup_timeout = true
-
-            @queue << job # Reschedule
+            job.orka_setup_time = Time.now.to_i
           rescue Faraday::TimeoutError
             log("Timeout when deploying VM for job #{job.runner_name}.", error: true)
 
             job.orka_setup_timeout = true
-
-            @queue << job # Reschedule
+            job.orka_setup_time = Time.now.to_i
           end
 
           state.orka_stop_processor.queue << job if !job.orka_vm_id.nil? && job.github_state == :completed

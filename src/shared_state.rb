@@ -21,6 +21,7 @@ require_relative "expired_job"
 require_relative "shutdown_exception"
 require_relative "orka_start_processor"
 require_relative "orka_stop_processor"
+require_relative "orka_timeout_processor"
 require_relative "github_watcher"
 
 # Shared singleton state class used by all other files.
@@ -64,7 +65,7 @@ class SharedState
   attr_reader :config,
               :orka_client,
               :orka_mutex, :orka_free_condvar, :github_mutex, :github_metadata_condvar,
-              :orka_start_processors, :orka_stop_processor, :github_watcher,
+              :orka_start_processors, :orka_stop_processor, :orka_timeout_processor, :github_watcher,
               :github_runner_metadata,
               :jobs, :expired_jobs
 
@@ -85,6 +86,7 @@ class SharedState
       [type, OrkaStartProcessor.new(QueueTypes.name(type))]
     end
     @orka_stop_processor = OrkaStopProcessor.new
+    @orka_timeout_processor = OrkaTimeoutProcessor.new
     @github_watcher = GitHubWatcher.new
 
     @github_runner_metadata = GitHubRunnerMetadata.new
@@ -203,7 +205,7 @@ class SharedState
   end
 
   def thread_runners
-    [*@orka_start_processors.values, @orka_stop_processor, @github_watcher].freeze
+    [*@orka_start_processors.values, @orka_stop_processor, @orka_timeout_processor, @github_watcher].freeze
   end
 
   def job(runner_name)

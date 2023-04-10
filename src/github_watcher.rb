@@ -192,6 +192,7 @@ class GitHubWatcher < ThreadRunner
     current_time = Time.now.to_i
     run_statuses = {}
     state.jobs.each do |job|
+      next if job.orka_setup_timeout?
       next if job.orka_setup_time.nil? || (current_time - job.orka_setup_time) < 900
       next if job.github_state != :queued
       next if job.orka_vm_id.nil?
