@@ -32,7 +32,7 @@ spec:
         - secretRef:
             name: ci-orchestrator-secrets
       - name: nginx
-        image: jonasal/nginx-certbot:3-alpine
+        image: jonasal/nginx-certbot:4-alpine
         ports:
         - containerPort: 80
           hostPort: 80
