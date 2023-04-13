@@ -224,6 +224,8 @@ class CIOrchestratorApp < Sinatra::Base
     vm_id = params["orka_vm_id"]
 
     if job.orka_vm_id.nil?
+      return if job.github_state == :completed && job.orka_setup_complete?
+
       job.orka_vm_id = vm_id
       job.orka_setup_time = Time.now.to_i
       job.orka_setup_timeout = false
