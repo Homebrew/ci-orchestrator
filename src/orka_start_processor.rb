@@ -75,7 +75,7 @@ class OrkaStartProcessor < ThreadRunner
 
           vm_metadata = {
             runner_registration_token: github_metadata.registration_token.token,
-            runner_label:              job.runner_name,
+            runner_label:              job.runner_labels.join(","),
             runner_name:               job.runner_name,
             runner_config_args:        "--ephemeral",
             runner_download:           runner_download[:url],

@@ -7,13 +7,15 @@ require_relative "queue_types"
 # Information representing a CI job.
 class Job
   NAME_REGEX =
-    /\A(?<runner>\d+(?:\.\d+)?(?:-arm64|-cross)?)-(?<run_id>\d+)-(?<run_attempt>\d+)(?<deps>-deps)?\z/
+    /\A(?<runner>\d+(?:\.\d+)?(?:-arm64|-cross)?)-(?<run_id>\d+)(?:-(?<run_attempt>\d+))?(?:-(?<tag>[a-z]+))?\z/
 
   attr_reader :runner_name, :repository, :github_id, :secret
   attr_writer :orka_setup_timeout
   attr_accessor :github_state, :orka_vm_id, :orka_setup_time, :orka_start_attempts, :runner_completion_time
 
   def initialize(runner_name, repository, github_id, secret: nil)
+    raise ArgumentError, "Runner name needs a run attempt" if runner_name[NAME_REGEX, :run_attempt].nil?
+
     @runner_name = runner_name
     @repository = repository
     @github_id = github_id
@@ -42,8 +44,19 @@ class Job
     @runner_name[NAME_REGEX, :run_attempt]
   end
 
-  def deps
-    @runner_name[NAME_REGEX, :deps]
+  def tag
+    @runner_name[NAME_REGEX, :tag]
+  end
+
+  def runner_labels
+    @runner_labels ||= begin
+      runner_name_no_attempt = runner_name.sub(NAME_REGEX) do |match|
+        start_off, end_off = Regexp.last_match.offset(:run_attempt)
+        match.slice!((start_off - 1)...end_off)
+        match
+      end
+      [@runner_name, runner_name_no_attempt].freeze
+    end
   end
 
   def orka_setup_complete?
