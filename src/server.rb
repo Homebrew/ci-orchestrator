@@ -278,11 +278,14 @@ class CIOrchestratorApp < Sinatra::Base
 
   def runner_for_job(workflow_job, only_unassigned: false)
     if workflow_job["runner_name"].to_s.empty?
-      matching_label = workflow_job["labels"].find { |label| label.match?(Job::NAME_REGEX) }
-      return if matching_label.nil?
+      workflow_job["labels"].filter_map do |label|
+        match_data = label.match(Job::NAME_REGEX)
+        next if match_data.nil?
+        next label unless match_data[:run_attempt].nil?
 
-      matching_label += "-#{workflow_job["run_attempt"]}" if matching_label[Job::NAME_REGEX, :run_attempt].nil?
-      matching_label
+        _, end_off = match_data.offset(:run_id)
+        label.dup.insert(end_off, "-#{workflow_job["run_attempt"]}")
+      end.first
     elsif !only_unassigned
       workflow_job["runner_name"]
     end
