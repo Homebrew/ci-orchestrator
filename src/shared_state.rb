@@ -137,7 +137,7 @@ class SharedState
               # Just assume we're done if we've been gone for a while.
               puts "Marking #{job.runner_name} as completed as we've been gone for a while."
               job.github_state = :completed
-            else
+            elsif !job.orka_setup_timeout?
               puts "Queueing #{job.runner_name} for deployment..."
               @orka_start_processors[job.queue_type].queue << job
             end
