@@ -279,6 +279,8 @@ class CIOrchestratorApp < Sinatra::Base
   def runner_for_job(workflow_job, only_unassigned: false)
     if workflow_job["runner_name"].to_s.empty?
       matching_label = workflow_job["labels"].find { |label| label.match?(Job::NAME_REGEX) }
+      return if matching_label.nil?
+
       matching_label += "-#{workflow_job["run_attempt"]}" if matching_label[Job::NAME_REGEX, :run_attempt].nil?
       matching_label
     elsif !only_unassigned
