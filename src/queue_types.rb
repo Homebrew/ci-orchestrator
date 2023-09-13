@@ -23,10 +23,9 @@ module QueueTypes
 
   def self.slots(type)
     case type
-    when MACOS_X86_64_LEGACY
+    when MACOS_ARM64, MACOS_X86_64_LEGACY
       12
-    when MACOS_ARM64,
-         MACOS_X86_64
+    when MACOS_X86_64
       6
     else
       raise ArgumentError, "Invalid queue type #{type}"
