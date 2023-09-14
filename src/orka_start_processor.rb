@@ -79,7 +79,7 @@ class OrkaStartProcessor < ThreadRunner
             runner_registration_token: github_metadata.registration_token.token,
             runner_label:              job.runner_labels.join(","),
             runner_name:               job.runner_name,
-            runner_config_args:        "--ephemeral",
+            runner_config_args:        "--ephemeral --disableupdate --no-default-labels",
             runner_download:           runner_download[:url],
             runner_download_sha256:    runner_download[:sha256],
             orchestrator_secret:       job.secret,
