@@ -88,6 +88,7 @@ class OrkaStartProcessor < ThreadRunner
           config = CONFIG_MAP[job.os]
           job.orka_setup_time = nil
 
+          full_host_retry_count = 0
           Thread.handle_interrupt(ShutdownException => :never) do
             if job.orka_vm_id.nil?
               log "Deploying VM for job #{job.runner_name}..."
@@ -100,7 +101,14 @@ class OrkaStartProcessor < ThreadRunner
               log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
             end
           rescue Faraday::ServerError => e
-            log("Error 500 deploying VM for job #{job.runner_name}: #{e.response[:body]}", error: true)
+            if e.response_body.include?("Cannot deploy more than 2 VMs on an ARM host") && full_host_retry_count < 3
+              full_host_retry_count += 1
+              log "Host full. Retrying..."
+              sleep(10)
+              retry
+            end
+
+            log("Error 500 deploying VM for job #{job.runner_name}: #{e.response_body}", error: true)
 
             job.orka_setup_timeout = true
             job.orka_setup_time = Time.now.to_i
