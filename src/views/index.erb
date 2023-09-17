@@ -5,8 +5,10 @@
     <title><%= state.config.github_organisation %> CI Orchestrator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <link rel="icon" type="image/x-icon" href="https://brew.sh/assets/img/favicon.ico">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <link rel="icon" type="image/svg+xml" href="https://brew.sh/assets/img/brewtestbot.svg">
+    <link rel="icon" type="image/x-icon" href="https://brew.sh/assets/img/favicon.ico" sizes="16x16">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
   </head>
   <body>
     <nav class="navbar navbar-expand navbar-light bg-light">
@@ -17,20 +19,44 @@
         </div>
         <ul class="navbar-nav flex-fill">
           <li class="nav-item flex-fill text-nowrap text-end">
-            <span>Logged in as <%= username %></span>
+            <span>Logged in as <%= user.fetch(:username) %></span>
+            <img class="rounded-1 ms-1" src="<%= user.fetch(:avatar_url) %>" width="32" height="32">
           </li>
         </ul>
       </div>
     </nav>
-    <main class="container-xxl py-3">
-      <div class="row row-cols-lg-2" style="--bs-gutter-x: 0.75rem; row-gap: 0.75rem">
-        <div class="col-lg">
-          <div class="card p-3 h-100">
-            <h5>Jobs</h5>
+    <main class="container-xxl py-3" style="--bs-gutter-x: 2rem">
+      <div class="d-md-flex align-items-start">
+        <div>
+          <div class="nav nav-pills flex-column border-end pe-3 gap-1" role="tablist" aria-orientation="vertical">
+            <button class="nav-link active text-start" id="jobs-tab" data-bs-toggle="pill" data-bs-target="#jobs-tab-pane" type="button" role="tab" aria-controls="jobs-tab-pane" aria-selected="true">🛠️ Jobs</button>
+            <% state.thread_runners.each_with_index do |runner, index| %>
+            <div class="d-flex">
+              <button class="nav-link text-start flex-fill" id="runner<%= index %>-tab" data-bs-toggle="pill" data-bs-target="#runner<%= index %>-tab-pane" type="button" role="tab" aria-controls="runner<%= index %>-tab-pane" aria-selected="false">⚙️ <%= runner.name %></button>
+              <% if runner.pausable? %>
+              <form action="<%= runner.paused? ? "/unpause" : "/pause" %>" method="post" class="d-flex ms-1">
+                <input type="hidden" name="thread_runner" value="<%= runner.name %>">
+                <% if runner.paused? %>
+                <button type="submit" style="--bs-btn-padding-y: 0; width: 2.5rem" class="btn btn-success">&#9654;</button>
+                <% else %>
+                <button type="submit" style="font-size: 0.5rem; --bs-btn-padding-y: 0; width: 2.5rem" class="btn btn-danger">&#9616;&nbsp;&#9612;</button>
+                <% end %>
+              </form>
+              <% end %>
+            </div>
+            <% end %>
+            <button class="nav-link text-start" id="metadata-tab" data-bs-toggle="pill" data-bs-target="#metadata-tab-pane" type="button" role="tab" aria-controls="metadata-tab-pane" aria-selected="false">ℹ️ GitHub Runner Metadata</button>
+            <button class="nav-link text-start" id="pause-tab" data-bs-toggle="pill" data-bs-target="#pause-tab-pane" type="button" role="tab" aria-controls="pause-tab-pane" aria-selected="false">⏸️ Global Pause</button>
+          </div>
+          <p class="small mb-md-0 mt-3">Page generated at <%= Time.now %></p>
+        </div>
+        <div class="tab-content ps-3 flex-fill">
+          <div class="tab-pane show active" id="jobs-tab-pane" role="tabpanel" aria-labelledby="jobs-tab" tabindex="0">
             <div class="table-responsive">
-              <table class="table mb-0">
+              <table class="table mb-0 align-middle">
                 <thead>
                   <tr>
+                    <th class="d-none d-sm-table-cell" style="width: 32px"></th>
                     <th>Runner Name</th>
                     <th>GH State</th>
                     <th>Orka VM ID</th>
@@ -40,6 +66,14 @@
                 <tbody>
                   <% state.jobs.each do |job| %>
                   <tr>
+                    <td class="d-none d-sm-table-cell">
+                      <div class="position-relative">
+                        <img src="/img/runner/<%= job.os.partition("-").first %>.png" width="32" height="32" onerror="this.style.visibility = 'hidden'">
+                        <% if job.arm64? %>
+                        <p class="position-absolute bottom-0 m-0 w-100 text-center rounded text-bg-primary user-select-none" style="font-size: 8px">arm64</p>
+                        <% end %>
+                      </div>
+                    </td>
                     <td><a href="https://github.com/<%= state.config.github_organisation %>/<%= job.repository %>/actions/runs/<%= job.run_id %>/attempts/<%= job.run_attempt %>"><%= job.runner_name %></a></td>
                     <td><%= job.github_state.to_s.split("_").map(&:capitalize).join(" ") %></td>
                     <td><%= job.orka_vm_id %></td>
@@ -50,34 +84,15 @@
               </table>
             </div>
           </div>
-        </div>
-        <% state.thread_runners.each do |runner| %>
-        <div class="col-lg">
-          <div class="card p-3 h-100">
-            <div style="display: flex">
-              <h5 class="flex-fill lh-base mb-3"><%= runner.name %></h5>
-              <% if runner.pausable? %>
-              <% if runner.paused? %>
-              <form action="/unpause" method="post">
-                <input type="hidden" name="thread_runner" value="<%= runner.name %>">
-                <button type="submit" class="btn btn-success">Unpause</button>
-              </form>
-              <% else %>
-              <form action="/pause" method="post">
-                <input type="hidden" name="thread_runner" value="<%= runner.name %>">
-                <button type="submit" class="btn btn-danger">Pause</button>
-              </form>
-              <% end %>
-              <% end %>
-            </div>
-            <pre class="mb-0 d-flex flex-column-reverse" style="max-height: 15em; font-size: 75%"><% runner.log_history.each { |event| %><%= h event.to_s + "\n" %><% } %></pre>
+          <% state.thread_runners.each_with_index do |runner, index| %>
+          <div class="tab-pane" id="runner<%= index %>-tab-pane" role="tabpanel" aria-labelledby="runner<%= index %>-tab" tabindex="0">
+            <pre class="mb-0 d-flex flex-column-reverse" style="max-height: 32em; font-size: 75%">
+              <div><% runner.log_history.each { |event| %><span class="<%= "text-danger" if event.error? %>"><%= h event.to_s + "\n" %></span><% } %></div>
+            </pre>
           </div>
-        </div>
-        <% end %>
-        <div class="col-lg">
-          <div class="card p-3 h-100">
-            <h5>GitHub Runner Metadata</h5>
-            <h6>Downloads</h6>
+          <% end %>
+          <div class="tab-pane" id="metadata-tab-pane" role="tabpanel" aria-labelledby="metadata-tab" tabindex="0">
+            <h4>Runner Downloads</h4>
             <div class="table-responsive">
               <table class="table">
                 <thead>
@@ -111,10 +126,7 @@
               <small><strong>Last retrieved:</strong> <%= state.github_runner_metadata.download_fetch_time || "Never" %></small>
             </p>
           </div>
-        </div>
-        <div class="col-lg">
-          <div class="card p-3 h-100">
-            <h5>Pause</h5>
+          <div class="tab-pane" id="pause-tab-pane" role="tabpanel" aria-labelledby="pause-tab" tabindex="0">
             <% pausable_count = state.thread_runners.count { |runner| runner.pausable? } %>
             <% paused_count = state.thread_runners.count { |runner| runner.pausable? && runner.paused? } %>
             <% if paused_count == pausable_count %>
@@ -134,11 +146,6 @@
           </div>
         </div>
       </div>
-      <footer class="mt-3">
-        <p class="text-end">
-          <small>Page generated at <%= Time.now %></small>
-        </p>
-      </footer>
     </main>
   </body>
 </html>

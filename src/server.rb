@@ -5,6 +5,7 @@ require "logger"
 require "openssl"
 require "json"
 require "securerandom"
+require "addressable"
 
 require_relative "shared_state"
 
@@ -29,7 +30,10 @@ class CIOrchestratorApp < Sinatra::Base
       end
 
       if settings.development?
-        session[:username] = "localhost"
+        session[:user] = {
+          username:   "localhost",
+          avatar_url: "https://github.com/ghost.png",
+        }
         return
       end
 
@@ -37,7 +41,7 @@ class CIOrchestratorApp < Sinatra::Base
 
       if session[:github_access_token] && (session[:github_access_token][:expires] - Time.now.to_i) >= 300
         if session[:auth_validated_at] && (Time.now.to_i - session[:auth_validated_at]) < 600
-          return if session[:username]
+          return if session[:user]
 
           halt 403, "Forbidden."
         end
@@ -63,11 +67,16 @@ class CIOrchestratorApp < Sinatra::Base
 
           session[:auth_validated_at] = Time.now.to_i
           if org_member
-            session[:username] = username
+            avatar_url = Addressable::URI.parse(user_info.avatar_url)
+            avatar_url.query_values = (avatar_url.query_values || {}).merge({
+              "s" => "64",
+            })
+
+            session[:user] = { username:, avatar_url: }
             return
           end
 
-          session[:username] = nil
+          session[:user] = nil
           halt 403, "Forbidden."
         end
       end
@@ -113,7 +122,7 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   get "/", require_auth: true do
-    erb :index, locals: { state: SharedState.instance, username: session[:username] }
+    erb :index, locals: { state: SharedState.instance, user: session[:user] }
   end
 
   get "/robots.txt" do
