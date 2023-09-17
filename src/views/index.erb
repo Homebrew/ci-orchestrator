@@ -37,7 +37,7 @@
               <form action="<%= runner.paused? ? "/unpause" : "/pause" %>" method="post" class="d-flex ms-1">
                 <input type="hidden" name="thread_runner" value="<%= runner.name %>">
                 <% if runner.paused? %>
-                <button type="submit" style="--bs-btn-padding-y: 0; width: 2.5rem" class="btn btn-success">&#9654;</button>
+                <button type="submit" style="--bs-btn-padding-y: 0; width: 2.5rem" class="btn btn-success">&#9654;&#xFE0E;</button>
                 <% else %>
                 <button type="submit" style="font-size: 0.5rem; --bs-btn-padding-y: 0; width: 2.5rem" class="btn btn-danger">&#9616;&nbsp;&#9612;</button>
                 <% end %>
