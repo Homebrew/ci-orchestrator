@@ -85,7 +85,7 @@
                     <td><a href="https://github.com/<%= state.config.github_organisation %>/<%= job.repository %>/actions/runs/<%= job.run_id %>/attempts/<%= job.run_attempt %>"><%= job.runner_name %></a></td>
                     <td><%= job.github_state.to_s.split("_").map(&:capitalize).join(" ") %></td>
                     <td><%= job.orka_vm_id %></td>
-                    <td><%= job.orka_setup_timeout? ? "◷" : (job.orka_setup_complete? ? "✓" : "✖") %></td>
+                    <td><%= job.orka_setup_timeout? ? "◷" : (job.orka_setup_complete? ? "✓" : "✕") %></td>
                   </tr>
                   <% end %>
                 </tbody>
