@@ -58,7 +58,7 @@
           </div>
           <p class="small mb-md-0 mt-3">Page generated at <%= Time.now %></p>
         </div>
-        <div class="tab-content ps-3 flex-fill">
+        <div class="tab-content ps-3 flex-fill" style="width: 0">
           <div class="tab-pane show active" id="jobs-tab-pane" role="tabpanel" aria-labelledby="jobs-tab" tabindex="0">
             <div class="table-responsive">
               <table class="table mb-0 align-middle">
@@ -94,7 +94,7 @@
           </div>
           <% state.thread_runners.each_with_index do |runner, index| %>
           <div class="tab-pane" id="runner<%= index %>-tab-pane" role="tabpanel" aria-labelledby="runner<%= index %>-tab" tabindex="0">
-            <pre class="mb-0 d-flex flex-column-reverse" style="max-height: 32em; font-size: 75%">
+            <pre class="mb-0 d-flex flex-column-reverse" style="max-height: 32em; font-size: 75%; white-space: pre-wrap">
               <div><% runner.log_history.each { |event| %><span class="<%= "text-danger" if event.error? %>"><%= h event.to_s + "\n" %></span><% } %></div>
             </pre>
           </div>
