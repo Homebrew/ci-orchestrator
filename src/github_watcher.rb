@@ -107,7 +107,7 @@ class GitHubWatcher < ThreadRunner
     current_time = Time.now.to_i
 
     deliveries = []
-    page = client.app_hook_deliveries
+    page = client.list_app_hook_deliveries
     loop do
       filtered = page.select { |delivery| delivery.delivered_at.to_i >= lookback_time }
       deliveries += filtered
@@ -135,7 +135,7 @@ class GitHubWatcher < ThreadRunner
 
     log "Asking for redelivery of #{failed_deliveries.length} hook events..." unless failed_deliveries.empty?
     failed_deliveries.each do |delivery|
-      client.redeliver_app_hook(delivery.id)
+      client.deliver_app_hook(delivery.id)
     rescue Octokit::Error
       log("Failed to redeliver #{delivery.id}.", error: true)
     end
@@ -217,7 +217,7 @@ class GitHubWatcher < ThreadRunner
 
       case job_state
       when "queued"
-        log "Job #{run_key} is likely stuck. Redeploying..."
+        log "Job #{run_key} has likely stuck #{job.os} runner. Redeploying..."
         job.orka_setup_time = nil
         state.orka_stop_processor.queue << job
       when "in_progress"

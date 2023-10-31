@@ -7,7 +7,6 @@ require "orka_api_client"
 require "octokit"
 # TODO: upstream these
 require_relative "octokit/self_hosted_runner"
-require_relative "octokit/hook_deliveries"
 require_relative "octokit/actions_workflow_run_attempt"
 
 require "openssl"
