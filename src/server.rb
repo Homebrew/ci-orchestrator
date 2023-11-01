@@ -277,7 +277,7 @@ class CIOrchestratorApp < Sinatra::Base
     job = SharedState.instance.job(runner_name)
     return if job.nil?
 
-    if job.secret != params["orchestrator_secret"]
+    unless Rack::Utils.secure_compare(job.secret, params["orchestrator_secret"])
       $stderr.puts("Secret mismatch for #{runner_name}!")
       halt 403, "Forbidden."
     end
