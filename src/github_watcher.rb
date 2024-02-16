@@ -35,7 +35,7 @@ class GitHubWatcher < ThreadRunner
         token = state.github_client
                      .create_org_runner_registration_token(state.config.github_organisation)
       rescue Octokit::Error
-        log("Error retriving runner registration token.", error: true)
+        log("Error retrieving runner registration token.", error: true)
         return
       end
 
@@ -67,7 +67,7 @@ class GitHubWatcher < ThreadRunner
           }
         end
       rescue Octokit::Error
-        log("Error retriving runner download URL.", error: true)
+        log("Error retrieving runner download URL.", error: true)
         return
       end
 
@@ -152,7 +152,7 @@ class GitHubWatcher < ThreadRunner
     begin
       runners = state.github_client.org_runners(state.config.github_organisation).runners
     rescue Octokit::Error
-      log("Error retriving organisation runner list.", error: true)
+      log("Error retrieving organisation runner list.", error: true)
       return
     end
 
@@ -204,7 +204,7 @@ class GitHubWatcher < ThreadRunner
         begin
           run_statuses[run_key] = state.github_client.workflow_run_attempt(repo, job.run_id, job.run_attempt).status
         rescue Octokit::Error
-          log("Error retriving workflow run information for #{run_key}.", error: true)
+          log("Error retrieving workflow run information for #{run_key}.", error: true)
           next
         end
       end
