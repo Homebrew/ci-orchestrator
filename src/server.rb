@@ -14,7 +14,7 @@ class CIOrchestratorApp < Sinatra::Base
   configure do
     set :sessions, expire_after: 28800, same_site: :lax, skip: true
     set :session_store, Rack::Session::Pool
-    set :protection, reaction: :deny, logger: Logger.new($stderr), except: :session_hijacking
+    set :protection, reaction: :deny, logger: Logger.new($stderr)
   end
 
   helpers ERB::Util

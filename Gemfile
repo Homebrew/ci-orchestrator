@@ -7,6 +7,7 @@ gem "jwt"
 gem "octokit"
 gem "orka_api_client", git: "https://github.com/Homebrew/orka_api_client"
 gem "puma"
+gem "rackup"
 gem "sinatra"
 
 group :development, optional: true do
