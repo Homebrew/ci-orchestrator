@@ -35,7 +35,7 @@
     </nav>
     <main class="container-xxl py-3" style="--bs-gutter-x: 2rem">
       <div class="d-md-flex align-items-start">
-        <div>
+        <div class="flex-shrink-0">
           <div class="nav nav-pills flex-column border-end pe-3 gap-1" role="tablist" aria-orientation="vertical">
             <button class="nav-link active text-start" id="jobs-tab" data-bs-toggle="pill" data-bs-target="#jobs-tab-pane" type="button" role="tab" aria-controls="jobs-tab-pane" aria-selected="true">🛠️ Jobs</button>
             <% state.thread_runners.each_with_index do |runner, index| %>
@@ -58,7 +58,7 @@
           </div>
           <p class="small mb-md-0 mt-3">Page generated at <%= Time.now %></p>
         </div>
-        <div class="tab-content ps-3 flex-fill" style="width: 0">
+        <div class="tab-content ps-3 flex-fill">
           <div class="tab-pane show active" id="jobs-tab-pane" role="tabpanel" aria-labelledby="jobs-tab" tabindex="0">
             <div class="table-responsive">
               <table class="table mb-0 align-middle">
