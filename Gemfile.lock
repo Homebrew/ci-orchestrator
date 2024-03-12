@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/Homebrew/orka_api_client
-  revision: 56d765abde98d2646eab6e1aec79f1bf69f98259
+  revision: 7989c860b655a6762be00e3ef925043cdc93a6eb
   specs:
     orka_api_client (0.2.0)
       faraday (~> 2.0)
@@ -22,7 +22,7 @@ GEM
     faraday-retry (2.2.0)
       faraday (~> 2.0)
     json (2.7.1)
-    jwt (2.8.0)
+    jwt (2.8.1)
       base64
     language_server-protocol (3.17.0.3)
     multipart-post (2.4.0)
@@ -55,7 +55,7 @@ GEM
     rainbow (3.1.1)
     regexp_parser (2.9.0)
     rexml (3.2.6)
-    rubocop (1.60.2)
+    rubocop (1.62.1)
       json (~> 2.3)
       language_server-protocol (>= 3.17.0)
       parallel (~> 1.10)
@@ -63,11 +63,11 @@ GEM
       rainbow (>= 2.2.2, < 4.0)
       regexp_parser (>= 1.8, < 3.0)
       rexml (>= 3.2.5, < 4.0)
-      rubocop-ast (>= 1.30.0, < 2.0)
+      rubocop-ast (>= 1.31.1, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 3.0)
-    rubocop-ast (1.30.0)
-      parser (>= 3.2.1.0)
+    rubocop-ast (1.31.2)
+      parser (>= 3.3.0.4)
     rubocop-performance (1.20.2)
       rubocop (>= 1.48.1, < 2.0)
       rubocop-ast (>= 1.30.0, < 2.0)
