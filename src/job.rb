@@ -7,9 +7,9 @@ require_relative "queue_types"
 # Information representing a CI job.
 class Job
   NAME_REGEX =
-    /\A(?<runner>\d+(?:\.\d+)?(?:-arm64)?(?:-cross)?)-(?<run_id>\d+)(?:-(?<run_attempt>\d+))?(?:-(?<tag>[a-z]+))?\z/
+    /\A(?<runner>\d+(?:\.\d+)?(?:-arm64)?(?:-cross)?)-(?<run_id>\d+)(?:-(?<run_attempt>\d+))?(?:-(?<tags>[-a-z]+))?\z/
 
-  attr_reader :runner_name, :repository, :github_id, :secret
+  attr_reader :runner_name, :repository, :github_id, :secret, :group
   attr_writer :orka_setup_timeout
   attr_accessor :github_state, :orka_vm_id, :orka_setup_time, :orka_start_attempts, :runner_completion_time
 
@@ -26,6 +26,7 @@ class Job
     @orka_start_attempts = 0
     @secret = secret || SecureRandom.hex(32)
     @runner_completion_time = nil
+    @group = long_build? ? :long : :default
   end
 
   def os
@@ -44,8 +45,12 @@ class Job
     @runner_name[NAME_REGEX, :run_attempt]
   end
 
-  def tag
-    @runner_name[NAME_REGEX, :tag]
+  def tags
+    @runner_name[NAME_REGEX, :tags]&.split("-").to_a
+  end
+
+  def long_build?
+    tags.include?("long")
   end
 
   def runner_labels

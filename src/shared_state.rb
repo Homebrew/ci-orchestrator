@@ -81,7 +81,7 @@ class SharedState
     @file_mutex = Mutex.new
 
     @orka_start_processors = QueueTypes.to_h do |type|
-      [type, OrkaStartProcessor.new(QueueTypes.name(type))]
+      [type, OrkaStartProcessor.new(type, QueueTypes.name(type))]
     end
     @orka_stop_processor = OrkaStopProcessor.new
     @orka_timeout_processor = OrkaTimeoutProcessor.new
@@ -213,6 +213,10 @@ class SharedState
   def free_slot?(waiting_job)
     max_slots = QueueTypes.slots(waiting_job.queue_type)
     @jobs.count { |job| job.queue_type == waiting_job.queue_type && !job.orka_vm_id.nil? } < max_slots
+  end
+
+  def running_jobs(queue_type)
+    jobs.select { |job| job.queue_type == queue_type && !job.orka_vm_id.nil? }
   end
 
   private

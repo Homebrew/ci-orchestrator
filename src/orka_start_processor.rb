@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "thread_runner"
+require_relative "job_queue"
 
 require "timeout"
 
@@ -21,9 +22,9 @@ class OrkaStartProcessor < ThreadRunner
 
   attr_reader :queue
 
-  def initialize(name)
+  def initialize(queue_type, name)
     super("#{self.class.name} (#{name})")
-    @queue = Queue.new
+    @queue = JobQueue.new(queue_type)
   end
 
   def pausable?
