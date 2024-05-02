@@ -31,7 +31,7 @@ class SharedState
   class Config
     attr_reader :state_file,
                 :orka_base_url, :orka_token,
-                :github_app_id, :github_app_private_key,
+                :github_app_private_key,
                 :github_client_id, :github_client_secret,
                 :github_webhook_secret,
                 :github_organisation, :github_installation_id,
@@ -41,7 +41,6 @@ class SharedState
       @state_file = ENV.fetch("STATE_FILE")
       @orka_base_url = ENV.fetch("ORKA_BASE_URL")
       @orka_token = ENV.fetch("ORKA_TOKEN")
-      @github_app_id = ENV.fetch("GITHUB_APP_ID")
       @github_app_private_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV.fetch("GITHUB_APP_PRIVATE_KEY")))
       @github_client_id = ENV.fetch("GITHUB_CLIENT_ID")
       @github_client_secret = ENV.fetch("GITHUB_CLIENT_SECRET")
@@ -185,7 +184,7 @@ class SharedState
     payload = {
       iat: Time.now.to_i - 60,
       exp: Time.now.to_i + (9 * 60), # 10 is the max, but let's be safe with 9.
-      iss: @config.github_app_id,
+      iss: @config.github_client_id,
     }
     token = JWT.encode(payload, @config.github_app_private_key, "RS256")
 
