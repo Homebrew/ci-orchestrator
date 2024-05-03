@@ -6,8 +6,11 @@ require_relative "queue_types"
 
 # Information representing a CI job.
 class Job
+  # rubocop:disable Layout/LineLength
+  # Splitting the long line up is probably just going to make things worse.
   NAME_REGEX =
-    /\A(?<runner>\d+(?:\.\d+)?(?:-arm64)?(?:-cross)?)-(?<run_id>\d+)(?:-(?<run_attempt>\d+))?(?:-(?<tags>[-a-z]+))?\z/
+    /\A(?<runner>\d+(?:\.\d+)?(?:-(?:arm|x86_)64)?(?:-cross)?)-(?<run_id>\d+)(?:-(?<run_attempt>\d+))?(?:-(?<tags>[-a-z]+))?\z/
+  # rubocop:enable Layout/LineLength
 
   attr_reader :runner_name, :repository, :github_id, :secret, :group
   attr_writer :orka_setup_timeout
