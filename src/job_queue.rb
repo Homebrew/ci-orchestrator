@@ -23,7 +23,7 @@ class JobQueue
       loop do
         running_long_build_count = SharedState.instance.running_jobs(@queue_type).count(&:long_build?)
 
-        if running_long_build_count < 2 && !@queue[:long].empty?
+        if running_long_build_count < 6 && !@queue[:long].empty?
           break @queue[:long].shift
         elsif !@queue[:default].empty?
           break @queue[:default].shift
