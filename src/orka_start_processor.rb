@@ -12,11 +12,11 @@ class OrkaStartProcessor < ThreadRunner
     "10.15"          => "catalina",
     "11"             => "bigsur",
     "11-arm64-cross" => "monterey-arm64-11-cross",
-    "12"             => "monterey",
+    "12-x86_64"      => "monterey",
     "12-arm64"       => "monterey-arm64",
-    "13"             => "ventura",
+    "13-x86_64"      => "ventura",
     "13-arm64"       => "ventura-arm64",
-    "14"             => "sonoma",
+    "14-x86_64"      => "sonoma",
     "14-arm64"       => "sonoma-arm64",
   }.freeze
 
