@@ -18,6 +18,9 @@ class OrkaStartProcessor < ThreadRunner
     "13-arm64"       => "ventura-arm64",
     "14-x86_64"      => "sonoma",
     "14-arm64"       => "sonoma-arm64",
+    "12"             => "monterey", # TODO: Remove me after a week or two
+    "13"             => "ventura",  # TODO: Remove me after a week or two
+    "14"             => "sonoma",   # TODO: Remove me after a week or two
   }.freeze
 
   attr_reader :queue
