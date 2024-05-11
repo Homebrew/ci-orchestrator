@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "queue_types"
 require_relative "shared_state"
 
 # A variation of `Thread::Queue` that allows us to prioritise certain types of jobs.
@@ -22,8 +23,9 @@ class JobQueue
     @mutex.synchronize do
       loop do
         running_long_build_count = SharedState.instance.running_jobs(@queue_type).count(&:long_build?)
+        long_build_slots = QueueTypes.slots(@queue_type) / 2
 
-        if running_long_build_count < 6 && !@queue[:long].empty?
+        if running_long_build_count < long_build_slots && !@queue[:long].empty?
           break @queue[:long].shift
         elsif !@queue[:default].empty?
           break @queue[:default].shift
