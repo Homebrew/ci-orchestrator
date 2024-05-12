@@ -27,7 +27,7 @@ class OrkaStartProcessor < ThreadRunner
 
   def initialize(queue_type, name)
     super("#{self.class.name} (#{name})")
-    @queue = JobQueue.new(queue_type)
+    @queue = JobQueue.new(queue_type, method(:log))
   end
 
   def pausable?
