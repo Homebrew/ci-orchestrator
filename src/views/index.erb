@@ -72,7 +72,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <% state.jobs.each do |job| %>
+                  <% state.jobs.sort_by(&:run_id).each do |job| %>
                   <tr>
                     <td class="d-none d-sm-table-cell">
                       <div class="position-relative">
