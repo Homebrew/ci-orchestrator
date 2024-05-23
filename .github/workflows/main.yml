@@ -61,7 +61,7 @@ jobs:
 
     - name: Build Docker image
       run: |-
-        docker build --tag "$IMAGE" --build-arg RUBY_VERSION=$(cat .ruby-version)
+        docker build --tag "$IMAGE" --build-arg RUBY_VERSION=$(cat .ruby-version) .
 
     - name: Publish Docker image
       run: |-
