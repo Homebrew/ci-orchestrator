@@ -1,4 +1,5 @@
-FROM ruby:3.3-alpine
+ARG RUBY_VERSION
+FROM ruby:$RUBY_VERSION-alpine
 
 # Currently need git as some dependencies are defined with git repos at the moment
 RUN apk add --no-cache --virtual .build-deps git build-base

@@ -24,7 +24,6 @@ jobs:
     - name: Set up Ruby
       uses: ruby/setup-ruby@cacc9f1c0b3f4eb8a16a6bb0ed10897b43b9de49 # v1.176.0
       with:
-        ruby-version: "3.3"
         bundler-cache: true
 
     - name: Run RuboCop
@@ -62,7 +61,7 @@ jobs:
 
     - name: Build Docker image
       run: |-
-        docker build --tag "$IMAGE" .
+        docker build --tag "$IMAGE" --build-arg RUBY_VERSION=$(cat .ruby-version) .
 
     - name: Publish Docker image
       run: |-
