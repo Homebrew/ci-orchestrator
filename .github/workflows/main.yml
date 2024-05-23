@@ -29,6 +29,9 @@ jobs:
     - name: Run RuboCop
       run: bundle exec rubocop
 
+    - name: Build Docker image
+      run: docker build --build-arg RUBY_VERSION=$(cat .ruby-version) .
+
   deploy:
     needs: checks
     if: github.repository_owner == 'Homebrew' && github.event_name == 'push'

@@ -5,7 +5,7 @@ FROM ruby:$RUBY_VERSION-alpine
 RUN apk add --no-cache --virtual .build-deps git build-base
 
 WORKDIR /app
-COPY Gemfile* ./
+COPY .ruby-version Gemfile* ./
 ENV BUNDLE_DEPLOYMENT=1
 RUN bundle install && apk del --no-cache .build-deps
 
