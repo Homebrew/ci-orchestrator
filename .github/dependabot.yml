@@ -1,4 +1,3 @@
-# This file is synced from the `.github` repository, do not modify it directly.
 version: 2
 
 updates:
@@ -6,44 +5,38 @@ updates:
     directory: /
     schedule:
       interval: daily
+      time: "14:30"
+      timezone: Europe/London
     allow:
       - dependency-type: all
     # The actions in triage-issues.yml are updated in the Homebrew/.github repo
     ignore:
       - dependency-name: actions/stale
       - dependency-name: dessant/lock-threads
+    commit-message:
+      prefix: workflows
 
   - package-ecosystem: bundler
     directory: /
     schedule:
       interval: daily
+      time: "14:30"
+      timezone: Europe/London
     allow:
       - dependency-type: all
-
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: daily
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: daily
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: devcontainers
-    directory: /
-    schedule:
-      interval: daily
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: pip
-    directory: /
-    schedule:
-      interval: daily
-    allow:
-      - dependency-type: all
+    commit-message:
+      prefix: Gemfile.lock
+    groups:
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      major:
+        applies-to: version-updates
+        update-types:
+          - major
+      minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
