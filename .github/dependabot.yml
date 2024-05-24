@@ -40,3 +40,31 @@ updates:
         update-types:
           - minor
           - patch
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+    allow:
+      - dependency-type: all
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: daily
+    allow:
+      - dependency-type: all
+
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule:
+      interval: daily
+    allow:
+      - dependency-type: all
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: daily
+    allow:
+      - dependency-type: all
