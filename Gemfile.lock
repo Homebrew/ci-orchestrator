@@ -103,5 +103,8 @@ DEPENDENCIES
   rubocop-performance
   sinatra
 
+RUBY VERSION
+   ruby 3.3.2p78
+
 BUNDLED WITH
    2.5.9
