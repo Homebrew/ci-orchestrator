@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       with:
         persist-credentials: false
 
@@ -46,13 +46,13 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       with:
         persist-credentials: false
 
     - name: Authenticate to Google Cloud
       id: gcloud-auth
-      uses: google-github-actions/auth@v2
+      uses: google-github-actions/auth@71fee32a0bb7e97b4d33d548e7d957010649d8fa # v2
       with:
         token_format: access_token
         workload_identity_provider: projects/${{ secrets.GCP_PROJECT_NUM }}/locations/global/workloadIdentityPools/ci-orchestrator-deploy/providers/github-actions
@@ -71,7 +71,7 @@ jobs:
         docker push "$IMAGE"
 
     - name: Get GKE credentials
-      uses: google-github-actions/get-gke-credentials@v2
+      uses: google-github-actions/get-gke-credentials@c544a3d7e92276d24e03a5632a53aa3913ad5d8a # v2
       with:
         cluster_name: ci-orchestrator
         location: us-central1-c
