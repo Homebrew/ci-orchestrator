@@ -1,3 +1,4 @@
+# typed: strong
 # frozen_string_literal: true
 
 require_relative "thread_runner"
@@ -7,7 +8,7 @@ require "timeout"
 
 # Thread runner responsible for deploying Orka VMs.
 class OrkaStartProcessor < ThreadRunner
-  CONFIG_MAP = {
+  CONFIG_MAP = T.let({
     "10.11-cross"    => "monterey-1011-cross",
     "10.15"          => "catalina",
     "11"             => "bigsur",
@@ -20,29 +21,34 @@ class OrkaStartProcessor < ThreadRunner
     "14-arm64"       => "sonoma-arm64",
     "15-x86_64"      => "sequoia",
     "15-arm64"       => "sequoia-arm64",
-  }.freeze
+  }.freeze, T::Hash[String, String])
 
+  sig { returns(JobQueue) }
   attr_reader :queue
 
+  sig { params(queue_type: QueueType, name: String).void }
   def initialize(queue_type, name)
     super("#{self.class.name} (#{name})")
-    @queue = JobQueue.new(queue_type)
-    @orka_free_condvar = ConditionVariable.new
+    @queue = T.let(JobQueue.new(queue_type), JobQueue)
+    @orka_free_condvar = T.let(ConditionVariable.new, ConditionVariable)
   end
 
+  sig { override.returns(T::Boolean) }
   def pausable?
     true
   end
 
-  def signal_free(group)
+  sig { params(priority_type: PriorityType).void }
+  def signal_free(priority_type)
     @orka_free_condvar.signal
-    @queue.signal_free(group)
+    @queue.signal_free(priority_type)
   end
 
+  sig { override.void }
   def run
     log "Started #{name}."
 
-    job = nil
+    job = T.let(nil, T.nilable(Job))
     loop do
       Thread.handle_interrupt(ShutdownException => :on_blocking) do
         job = @queue.pop
@@ -53,7 +59,7 @@ class OrkaStartProcessor < ThreadRunner
         github_mutex = state.github_mutex
         github_mutex.synchronize do
           while github_metadata.registration_token.nil? ||
-                (github_metadata.registration_token.expires_at.to_i - Time.now.to_i) < 300 ||
+                (T.must(github_metadata.registration_token).expires_at.to_i - Time.now.to_i) < 300 ||
                 github_metadata.download_urls.nil?
             log "Waiting for GitHub metadata..."
             state.github_metadata_condvar.wait(github_mutex)
@@ -83,19 +89,19 @@ class OrkaStartProcessor < ThreadRunner
             next
           end
 
-          runner_download = github_metadata.download_urls["osx"][job.arm64? ? "arm64" : "x64"]
+          runner_application = github_metadata.runner_application_for_job(job)
 
           vm_metadata = {
-            runner_registration_token: github_metadata.registration_token.token,
+            runner_registration_token: T.must(github_metadata.registration_token).token,
             runner_label:              job.runner_labels.join(","),
             runner_name:               job.runner_name,
             runner_config_args:        "--ephemeral --disableupdate --no-default-labels",
-            runner_download:           runner_download[:url],
-            runner_download_sha256:    runner_download[:sha256],
+            runner_download:           runner_application.url,
+            runner_download_sha256:    runner_application.sha256,
             orchestrator_secret:       job.secret,
           }
 
-          config = CONFIG_MAP[job.os]
+          config = CONFIG_MAP.fetch(job.os)
           job.orka_setup_time = nil
 
           full_host_retry_count = 0
@@ -111,7 +117,7 @@ class OrkaStartProcessor < ThreadRunner
               log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
             end
           rescue Faraday::ServerError => e
-            if e.response_body.include?("Cannot deploy more than 2 VMs on an ARM host") && full_host_retry_count < 3
+            if e.response_body&.include?("Cannot deploy more than 2 VMs on an ARM host") && full_host_retry_count < 3
               full_host_retry_count += 1
               log "Host full. Retrying..."
               sleep(10)
@@ -136,8 +142,8 @@ class OrkaStartProcessor < ThreadRunner
       break
     rescue => e
       @queue << job if job && job.orka_vm_id.nil? # Reschedule
-      log(e, error: true)
-      log(e.backtrace, error: true)
+      log(e.to_s, error: true)
+      log(e.backtrace.to_s, error: true)
       sleep(30)
     end
   end

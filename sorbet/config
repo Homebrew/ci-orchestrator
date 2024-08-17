@@ -1,0 +1,3 @@
+--dir=.
+--allowed-extension=.rb,.rbi,.ru
+--ignore=tmp/,vendor/

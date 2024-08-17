@@ -1,15 +1,19 @@
+# typed: strong
 # frozen_string_literal: true
 
-Regexp.timeout = 1
+Regexp.timeout = 1.0
 
+require "sorbet-runtime"
 require_relative "server"
+
+T.bind(self, Rack::Builder)
 
 # We have a second pod that assigns the correct IP.
 # Let's wait on that to avoid race conditions. Is it hacky? Probably.
 # This IP assignment is however necessary for Orka requests to succeed.
 public_ip = ENV.fetch("PUBLIC_IP", nil)
 unless public_ip.nil?
-  current_ip = nil
+  current_ip = T.let(nil, T.nilable(String))
   loop do
     begin
       current_ip = Net::HTTP.get(URI("https://api.ipify.org"))
@@ -25,7 +29,7 @@ end
 
 puts("Starting application...")
 
-threads = []
+threads = T.let([], T::Array[Thread])
 
 warmup do
   state = SharedState.instance

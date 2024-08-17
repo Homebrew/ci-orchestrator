@@ -1,35 +1,55 @@
+# typed: strong
 # frozen_string_literal: true
 
 # Information representing a CI job that we are no longer tracking.
 class ExpiredJob
-  attr_reader :runner_name, :expired_at
+  extend T::Sig
 
+  sig { returns(String) }
+  attr_reader :runner_name
+
+  sig { returns(Integer) }
+  attr_reader :expired_at
+
+  sig { params(runner_name: String, expired_at: Integer).void }
   def initialize(runner_name, expired_at:)
     @runner_name = runner_name
     @expired_at = expired_at
   end
 
+  sig { override.params(other: BasicObject).returns(T::Boolean) }
   def ==(other)
-    if other.is_a?(String)
+    case other
+    when String
       runner_name == other
+    when self.class
+      runner_name == other.runner_name
     else
-      self.class == other.class && runner_name == other.runner_name
+      false
     end
   end
 
+  sig { override.params(other: BasicObject).returns(T::Boolean) }
   def eql?(other)
-    self.class == other.class && self == other
+    case other
+    when self.class
+      self == other
+    else
+      false
+    end
   end
 
+  sig { params(object: T::Hash[String, T.untyped]).returns(T.attached_class) }
   def self.json_create(object)
-    new(object["runner_name"], expired_at: object["expired_at"])
+    new(T.cast(object["runner_name"], String), expired_at: T.cast(object["expired_at"], Integer))
   end
 
-  def to_json(*)
+  sig { params(state: T.nilable(JSON::State)).returns(String) }
+  def to_json(state)
     {
       JSON.create_id => self.class.name,
       "runner_name"  => @runner_name,
       "expired_at"   => @expired_at,
-    }.to_json(*)
+    }.to_json(state)
   end
 end

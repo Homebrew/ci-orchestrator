@@ -1,9 +1,15 @@
 require:
   - rubocop-performance
+  - rubocop-sorbet
 
 AllCops:
   TargetRubyVersion: 3.3
   NewCops: enable
+  inherit_mode:
+    merge:
+      - Include
+  Include:
+    - .*/*.rb
 
 Layout/CaseIndentation:
   EnforcedStyle: end
@@ -44,6 +50,24 @@ Metrics/MethodLength:
 
 Metrics/ParameterLists:
   CountKeywordArgs: false
+
+# Incompatible with Sorbet
+Naming/BlockForwarding:
+  Enabled: false
+
+Sorbet/FalseSigil:
+  Enabled: false
+Sorbet/StrictSigil:
+  Enabled: true
+  Include:
+    - src/server.rb
+    - src/github_client.rb
+Sorbet/StrongSigil:
+  Enabled: true
+  Exclude:
+    - src/server.rb
+    - src/github_client.rb
+    - src/octokit/*.rb
 
 Style/AndOr:
   EnforcedStyle: always

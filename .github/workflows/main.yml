@@ -26,6 +26,15 @@ jobs:
       with:
         bundler-cache: true
 
+    - name: Check Tapioca excludes
+      run: bundle exec ./.github/scripts/tapioca-exclude-check.rb
+
+    - name: Check RBI shims
+      run: bundle exec tapioca check-shims
+
+    - name: Run Sorbet typecheck
+      run: bundle exec srb tc
+
     - name: Run RuboCop
       run: bundle exec rubocop
 

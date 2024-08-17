@@ -1,3 +1,4 @@
+# typed: strong
 # frozen_string_literal: true
 
 require_relative "ring"
@@ -5,26 +6,36 @@ require_relative "log_event"
 
 # The base thread runner class.
 class ThreadRunner
-  attr_reader :name, :log_history
+  extend T::Sig
 
-  def initialize(name = self.class.name)
+  sig { returns(String) }
+  attr_reader :name
+
+  sig { returns(Ring[LogEvent]) }
+  attr_reader :log_history
+
+  sig { params(name: String).void }
+  def initialize(name = T.unsafe(self.class.name))
     @name = name
-    @log_history = Ring.new
-    @paused = false
-    @pause_mutex = Mutex.new
-    @unpause_condvar = ConditionVariable.new
+    @log_history = T.let(Ring.new, Ring[LogEvent])
+    @paused = T.let(false, T::Boolean)
+    @pause_mutex = T.let(Mutex.new, Mutex)
+    @unpause_condvar = T.let(ConditionVariable.new, ConditionVariable)
   end
 
+  sig { returns(T::Boolean) }
   def pausable?
     false
   end
 
+  sig { returns(T::Boolean) }
   def paused?
     raise "Runner not pausable." unless pausable?
 
     @paused
   end
 
+  sig { void }
   def pause
     raise "Runner not pausable." unless pausable?
 
@@ -33,6 +44,7 @@ class ThreadRunner
     end
   end
 
+  sig { void }
   def unpause
     raise "Runner not pausable." unless pausable?
 
@@ -42,17 +54,19 @@ class ThreadRunner
     end
   end
 
+  sig { void }
   def run
     raise "Implement me!"
   end
 
   private
 
+  sig { params(message: String, error: T::Boolean).void }
   def log(message, error: false)
-    @log_history << LogEvent.new(message.to_s, error:)
+    @log_history << LogEvent.new(message, error:)
 
     if error
-      $stderr.puts(message)
+      T.cast($stderr, IO).puts(message)
     else
       puts message
     end

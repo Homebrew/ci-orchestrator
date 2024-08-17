@@ -116,12 +116,12 @@
                   <tr>
                     <%
                       basename = begin
-                        File.basename(URI.parse(url_data[:url]).path)
+                        File.basename(URI.parse(url_data.url).path)
                       rescue URI::InvalidURIError
                         "(parse error)"
                       end
                     %>
-                    <td><a href="<%= url_data[:url] %>"><%= basename %></a></td>
+                    <td><a href="<%= url_data.url %>"><%= basename %></a></td>
                     <td><%= os %></td>
                     <td><%= arch %></td>
                   </tr>

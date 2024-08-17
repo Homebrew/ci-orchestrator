@@ -1,3 +1,4 @@
+# typed: strong
 # frozen_string_literal: true
 
 require_relative "thread_runner"
@@ -6,10 +7,12 @@ require_relative "thread_runner"
 class OrkaTimeoutProcessor < ThreadRunner
   TIMEOUT_SECONDS = 900
 
+  sig { override.returns(T::Boolean) }
   def pausable?
     true
   end
 
+  sig { override.void }
   def run
     log "Started #{name}."
 
@@ -24,6 +27,7 @@ class OrkaTimeoutProcessor < ThreadRunner
 
   private
 
+  sig { void }
   def check_orka
     Thread.handle_interrupt(ShutdownException => :on_blocking) do
       @pause_mutex.synchronize do
@@ -50,16 +54,19 @@ class OrkaTimeoutProcessor < ThreadRunner
               end
             end
           end
+
+          nil
         end
       end
     end
   rescue ShutdownException
     raise
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 
+  sig { void }
   def check_jobs
     Thread.handle_interrupt(ShutdownException => :never) do
       state = SharedState.instance
@@ -67,18 +74,18 @@ class OrkaTimeoutProcessor < ThreadRunner
       state.jobs.each do |job|
         next unless job.orka_setup_timeout?
         next if job.github_state != :queued
-        next if job.orka_setup_time > (current_time - TIMEOUT_SECONDS)
+        next if T.must(job.orka_setup_time) > (current_time - TIMEOUT_SECONDS)
 
         log "Rescheduling deploy of #{job.runner_name} after 15 minute timeout."
         job.orka_setup_time = nil
         job.orka_setup_timeout = false
-        state.orka_start_processors[job.queue_type].queue << job
+        state.orka_start_processors.fetch(job.queue_type).queue << job
       end
     end
   rescue ShutdownException
     raise
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 end

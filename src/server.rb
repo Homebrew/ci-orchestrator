@@ -1,3 +1,4 @@
+# typed: strict
 # frozen_string_literal: true
 
 require "sinatra/base"
@@ -11,6 +12,8 @@ require_relative "shared_state"
 
 # The app to listen to incoming webhook events.
 class CIOrchestratorApp < Sinatra::Base
+  extend T::Sig
+
   configure do
     set :sessions, expire_after: 28800, same_site: :lax, skip: true
     set :session_store, Rack::Session::Pool
@@ -90,6 +93,8 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   get "/auth/github" do
+    T.bind(self, CIOrchestratorApp)
+
     request.session_options[:skip] = false
 
     if params["state"] == session[:auth_state]
@@ -122,10 +127,14 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   get "/", require_auth: true do
+    T.bind(self, CIOrchestratorApp)
+
     erb :index, locals: { state: SharedState.instance, user: session[:user] }
   end
 
   get "/robots.txt" do
+    T.bind(self, CIOrchestratorApp)
+
     content_type :txt
     <<~TEXT
       User-agent: *
@@ -134,6 +143,8 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   post "/pause", require_auth: true do
+    T.bind(self, CIOrchestratorApp)
+
     thread_runner_name = params["thread_runner"]
     if thread_runner_name
       thread_runner = SharedState.instance.thread_runners.find { |runner| runner.name == thread_runner_name }
@@ -149,6 +160,8 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   post "/unpause", require_auth: true do
+    T.bind(self, CIOrchestratorApp)
+
     thread_runner_name = params["thread_runner"]
     if thread_runner_name
       thread_runner = SharedState.instance.thread_runners.find { |runner| runner.name == thread_runner_name }
@@ -164,6 +177,8 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   post "/hooks/github" do
+    T.bind(self, CIOrchestratorApp)
+
     payload_body = request.body.read
     verify_webhook_signature(payload_body)
     payload = JSON.parse(payload_body)
@@ -195,7 +210,7 @@ class CIOrchestratorApp < Sinatra::Base
 
       job = Job.new(runner, payload["repository"]["name"], workflow_job["id"])
       state.jobs << job
-      state.orka_start_processors[job.queue_type].queue << job
+      state.orka_start_processors.fetch(job.queue_type).queue << job
     when "in_progress"
       runner = runner_for_job(workflow_job)
       next if runner.nil?
@@ -227,6 +242,8 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   post "/hooks/runner_ready" do
+    T.bind(self, CIOrchestratorApp)
+
     job = verify_runner_hook(params)
     return if job.nil?
 
@@ -239,7 +256,9 @@ class CIOrchestratorApp < Sinatra::Base
       job.orka_setup_time = Time.now.to_i
       job.orka_setup_timeout = false
     elsif job.orka_vm_id != vm_id
-      $stderr.puts("Got ready request for #{runner_name} from an unexpected VM (#{job.orka_vm_id} != #{vm_id}).")
+      $stderr.puts(
+        "Got ready request for #{params["runner_name"]} from an unexpected VM (#{job.orka_vm_id} != #{vm_id}).",
+      )
       return
     end
 
@@ -247,11 +266,13 @@ class CIOrchestratorApp < Sinatra::Base
   end
 
   post "/hooks/runner_job_completed" do
+    T.bind(self, CIOrchestratorApp)
+
     job = verify_runner_hook(params)
     return if job.nil?
 
     if job.orka_vm_id.nil?
-      $stderr.puts("Got stop request for #{runner_name} from a VM that shouldn't exist.")
+      $stderr.puts("Got stop request for #{params["runner_name"]} from a VM that shouldn't exist.")
       return
     end
 
@@ -262,6 +283,7 @@ class CIOrchestratorApp < Sinatra::Base
 
   private
 
+  sig { params(payload_body: String).void }
   def verify_webhook_signature(payload_body)
     secret = SharedState.instance.config.github_webhook_secret
     signature = "sha256=#{OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new("sha256"), secret, payload_body)}"
@@ -270,6 +292,7 @@ class CIOrchestratorApp < Sinatra::Base
     halt 400, "Signatures didn't match!"
   end
 
+  sig { params(params: Sinatra::IndifferentHash).returns(T.nilable(Job)) }
   def verify_runner_hook(params)
     runner_name = params["runner_name"]
     halt 400, "Invalid request." if runner_name.to_s.strip.empty?
@@ -285,6 +308,7 @@ class CIOrchestratorApp < Sinatra::Base
     job
   end
 
+  sig { params(workflow_job: T::Hash[String, T.untyped], only_unassigned: T::Boolean).returns(T.nilable(String)) }
   def runner_for_job(workflow_job, only_unassigned: false)
     if workflow_job["runner_name"].to_s.empty?
       workflow_job["labels"].filter_map do |label|
@@ -300,6 +324,7 @@ class CIOrchestratorApp < Sinatra::Base
     end
   end
 
+  sig { params(runner: String).void }
   def expire_missed_job(runner)
     return unless runner.match?(Job::NAME_REGEX)
 

@@ -1,9 +1,11 @@
+# typed: strong
 # frozen_string_literal: true
 
 require_relative "thread_runner"
 
 # Thread runner responsible for managing connection to GitHub.
 class GitHubWatcher < ThreadRunner
+  sig { override.void }
   def run
     log "Started #{name}."
 
@@ -26,6 +28,7 @@ class GitHubWatcher < ThreadRunner
 
   private
 
+  sig { void }
   def refresh_token
     state = SharedState.instance
     metadata = state.github_runner_metadata
@@ -47,25 +50,17 @@ class GitHubWatcher < ThreadRunner
   rescue ShutdownException
     Thread.current.kill
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 
+  sig { void }
   def refresh_download_urls
     state = SharedState.instance
     metadata = state.github_runner_metadata
     if metadata.download_urls.nil? || (Time.now.to_i - metadata.download_fetch_time.to_i) > 86400
       begin
-        applications = state.github_client
-                            .org_runner_applications(state.config.github_organisation)
-        download_urls = {}
-        applications.each do |candidate|
-          download_urls[candidate.os] ||= {}
-          download_urls[candidate.os][candidate.architecture] = {
-            url:    candidate.download_url,
-            sha256: candidate.sha256_checksum,
-          }
-        end
+        download_urls = state.github_client.org_runner_applications(state.config.github_organisation)
       rescue Octokit::Error
         log("Error retrieving runner download URL.", error: true)
         return
@@ -85,10 +80,11 @@ class GitHubWatcher < ThreadRunner
   rescue ShutdownException
     Thread.current.kill
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 
+  sig { void }
   def redeliver_webhooks
     state = SharedState.instance
     lookback_time = state.last_webhook_check_time
@@ -101,24 +97,8 @@ class GitHubWatcher < ThreadRunner
       return
     end
 
-    client = state.jwt_github_client
-    client.per_page = 100
-
     current_time = Time.now.to_i
-
-    deliveries = []
-    page = client.list_app_hook_deliveries
-    loop do
-      filtered = page.select { |delivery| delivery.delivered_at.to_i >= lookback_time }
-      deliveries += filtered
-
-      break if page.length != filtered.length # We found the cut-off
-
-      next_rel = client.last_response.rels[:next]
-      break if next_rel.nil? # No more pages
-
-      page = client.get(next_rel.href)
-    end
+    deliveries = state.github_client.app_hook_deliveries(since: lookback_time)
 
     # Fetch successful, mark the last check time.
     state.last_webhook_check_time = current_time
@@ -135,7 +115,7 @@ class GitHubWatcher < ThreadRunner
 
     log "Asking for redelivery of #{failed_deliveries.length} hook events..." unless failed_deliveries.empty?
     failed_deliveries.each do |delivery|
-      client.deliver_app_hook(delivery.id)
+      state.github_client.deliver_app_hook(delivery.id)
     rescue Octokit::Error
       log("Failed to redeliver #{delivery.id}.", error: true)
     end
@@ -143,14 +123,15 @@ class GitHubWatcher < ThreadRunner
   rescue ShutdownException
     Thread.current.kill
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 
+  sig { void }
   def delete_runners
     state = SharedState.instance
     begin
-      runners = state.github_client.org_runners(state.config.github_organisation).runners
+      runners = state.github_client.org_runners(state.config.github_organisation)
     rescue Octokit::Error
       log("Error retrieving organisation runner list.", error: true)
       return
@@ -165,7 +146,7 @@ class GitHubWatcher < ThreadRunner
 
       log "Deleting organisation runner for #{job.runner_name}..."
       begin
-        state.github_client.delete_org_runner(state.config.github_organisation, runner.id)
+        state.github_client.delete_org_runner(state.config.github_organisation, runner)
         log "Organisation runner for #{job.runner_name} deleted."
       rescue Octokit::Error
         log("Error deleting organisation runner for \"#{job.runner_name}\".", error: true)
@@ -183,17 +164,18 @@ class GitHubWatcher < ThreadRunner
     end
     state.expired_jobs.concat(expired_jobs)
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 
+  sig { void }
   def timeout_queued_and_deployed
     state = SharedState.instance
     current_time = Time.now.to_i
-    run_statuses = {}
+    run_statuses = T.let({}, T::Hash[String, String])
     state.jobs.each do |job|
       next if job.orka_setup_timeout?
-      next if job.orka_setup_time.nil? || (current_time - job.orka_setup_time) < 900
+      next if (orka_setup_time = job.orka_setup_time).nil? || (current_time - orka_setup_time) < 900
       next if job.github_state != :queued
       next if job.orka_vm_id.nil?
 
@@ -202,7 +184,7 @@ class GitHubWatcher < ThreadRunner
 
       unless run_statuses.key?(run_key)
         begin
-          run_statuses[run_key] = state.github_client.workflow_run_attempt(repo, job.run_id, job.run_attempt).status
+          run_statuses[run_key] = state.github_client.workflow_run_attempt_status(repo, job.run_id, job.run_attempt)
         rescue Octokit::Error
           log("Error retrieving workflow run information for #{run_key}.", error: true)
           next
@@ -212,7 +194,7 @@ class GitHubWatcher < ThreadRunner
       job_state = if run_statuses[run_key] == "completed"
         "completed"
       else
-        state.github_client.workflow_run_job(repo, job.github_id).status
+        state.github_client.workflow_run_job_status(repo, job.github_id)
       end
 
       case job_state
@@ -230,15 +212,16 @@ class GitHubWatcher < ThreadRunner
       end
     end
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 
+  sig { void }
   def timeout_completed_jobs
     state = SharedState.instance
     current_time = Time.now.to_i
     state.jobs.each do |job|
-      next if job.runner_completion_time.nil? || (current_time - job.runner_completion_time) < 600
+      next if (completion_time = job.runner_completion_time).nil? || (current_time - completion_time) < 600
       next if job.github_state == :completed
       next if job.orka_vm_id.nil?
 
@@ -248,24 +231,26 @@ class GitHubWatcher < ThreadRunner
       state.orka_stop_processor.queue << job
     end
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 
+  sig { void }
   def cleanup_expired_jobs
     current_time = Time.now.to_i
     SharedState.instance.expired_jobs.delete_if do |job|
       job.expired_at < (current_time - 86400) # Forget after one day.
     end
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 
+  sig { void }
   def save_state
     SharedState.instance.save
   rescue => e
-    log(e, error: true)
-    log(e.backtrace, error: true)
+    log(e.to_s, error: true)
+    log(e.backtrace.to_s, error: true)
   end
 end

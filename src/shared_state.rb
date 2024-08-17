@@ -1,18 +1,15 @@
+# typed: strong
 # frozen_string_literal: true
 
 require "singleton"
 
 require "orka_api_client"
 
-require "octokit"
-# TODO: upstream these
-require_relative "octokit/self_hosted_runner"
-require_relative "octokit/actions_workflow_run_attempt"
-
 require "openssl"
 require "jwt"
 require "base64"
 
+require_relative "github_client"
 require_relative "github_runner_metadata"
 require_relative "job"
 require_relative "expired_job"
@@ -25,31 +22,57 @@ require_relative "github_watcher"
 
 # Shared singleton state class used by all other files.
 class SharedState
+  extend T::Sig
   include Singleton
 
   # Environment configuration.
   class Config
-    attr_reader :state_file,
-                :orka_base_url, :orka_token,
-                :github_app_private_key,
-                :github_client_id, :github_client_secret,
-                :github_webhook_secret,
-                :github_organisation, :github_installation_id,
-                :brew_vm_password
+    extend T::Sig
 
+    sig { returns(String) }
+    attr_reader :state_file
+
+    sig { returns(String) }
+    attr_reader :orka_base_url
+
+    sig { returns(String) }
+    attr_reader :orka_token
+
+    sig { returns(OpenSSL::PKey::RSA) }
+    attr_reader :github_app_private_key
+
+    sig { returns(String) }
+    attr_reader :github_client_id
+
+    sig { returns(String) }
+    attr_reader :github_client_secret
+
+    sig { returns(String) }
+    attr_reader :github_webhook_secret
+
+    sig { returns(String) }
+    attr_reader :github_organisation
+
+    sig { returns(String) }
+    attr_reader :github_installation_id
+
+    sig { void }
     def initialize
-      @state_file = ENV.fetch("STATE_FILE")
-      @orka_base_url = ENV.fetch("ORKA_BASE_URL")
-      @orka_token = ENV.fetch("ORKA_TOKEN")
-      @github_app_private_key = OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV.fetch("GITHUB_APP_PRIVATE_KEY")))
-      @github_client_id = ENV.fetch("GITHUB_CLIENT_ID")
-      @github_client_secret = ENV.fetch("GITHUB_CLIENT_SECRET")
-      @github_webhook_secret = ENV.fetch("GITHUB_WEBHOOK_SECRET")
-      @github_organisation = ENV.fetch("GITHUB_ORGANISATION")
-      @github_installation_id = ENV.fetch("GITHUB_INSTALLATION_ID")
-      @brew_vm_password = ENV.fetch("BREW_VM_PASSWORD")
+      @state_file = T.let(ENV.fetch("STATE_FILE"), String)
+      @orka_base_url = T.let(ENV.fetch("ORKA_BASE_URL"), String)
+      @orka_token = T.let(ENV.fetch("ORKA_TOKEN"), String)
+      @github_app_private_key = T.let(
+        OpenSSL::PKey::RSA.new(Base64.strict_decode64(ENV.fetch("GITHUB_APP_PRIVATE_KEY"))),
+        OpenSSL::PKey::RSA,
+      )
+      @github_client_id = T.let(ENV.fetch("GITHUB_CLIENT_ID"), String)
+      @github_client_secret = T.let(ENV.fetch("GITHUB_CLIENT_SECRET"), String)
+      @github_webhook_secret = T.let(ENV.fetch("GITHUB_WEBHOOK_SECRET"), String)
+      @github_organisation = T.let(ENV.fetch("GITHUB_ORGANISATION"), String)
+      @github_installation_id = T.let(ENV.fetch("GITHUB_INSTALLATION_ID"), String)
     end
 
+    sig { override.returns(String) }
     def to_s
       "Shared Configuration"
     end
@@ -60,52 +83,88 @@ class SharedState
 
   MAX_WEBHOOK_REDELIVERY_WINDOW = 21600
 
-  attr_reader :config,
-              :orka_client,
-              :orka_mutex, :github_mutex, :github_metadata_condvar,
-              :orka_start_processors, :orka_stop_processor, :orka_timeout_processor, :github_watcher,
-              :github_runner_metadata,
-              :jobs, :expired_jobs
+  sig { returns(Config) }
+  attr_reader :config
 
+  sig { returns(OrkaAPI::Client) }
+  attr_reader :orka_client
+
+  sig { returns(GitHubClient) }
+  attr_reader :github_client
+
+  sig { returns(Mutex) }
+  attr_reader :orka_mutex
+
+  sig { returns(Mutex) }
+  attr_reader :github_mutex
+
+  sig { returns(ConditionVariable) }
+  attr_reader :github_metadata_condvar
+
+  sig { returns(T::Hash[QueueType, OrkaStartProcessor]) }
+  attr_reader :orka_start_processors
+
+  sig { returns(OrkaStopProcessor) }
+  attr_reader :orka_stop_processor
+
+  sig { returns(OrkaTimeoutProcessor) }
+  attr_reader :orka_timeout_processor
+
+  sig { returns(GitHubWatcher) }
+  attr_reader :github_watcher
+
+  sig { returns(GitHubRunnerMetadata) }
+  attr_reader :github_runner_metadata
+
+  sig { returns(T::Array[Job]) }
+  attr_reader :jobs
+
+  sig { returns(T::Array[ExpiredJob]) }
+  attr_reader :expired_jobs
+
+  sig { returns(Integer) }
   attr_accessor :last_webhook_check_time
 
+  sig { void }
   def initialize
-    @config = Config.new
+    @config = T.let(Config.new, Config)
 
-    @orka_client = OrkaAPI::Client.new(@config.orka_base_url, token: @config.orka_token)
+    @orka_client = T.let(OrkaAPI::Client.new(@config.orka_base_url, token: @config.orka_token), OrkaAPI::Client)
+    @github_client = T.let(GitHubClient.new, GitHubClient)
 
-    @orka_mutex = Mutex.new
-    @github_mutex = Mutex.new
-    @github_metadata_condvar = ConditionVariable.new
-    @file_mutex = Mutex.new
+    @orka_mutex = T.let(Mutex.new, Mutex)
+    @github_mutex = T.let(Mutex.new, Mutex)
+    @github_metadata_condvar = T.let(ConditionVariable.new, ConditionVariable)
+    @file_mutex = T.let(Mutex.new, Mutex)
 
-    @orka_start_processors = QueueTypes.to_h do |type|
-      [type, OrkaStartProcessor.new(type, QueueTypes.name(type))]
-    end
-    @orka_stop_processor = OrkaStopProcessor.new
-    @orka_timeout_processor = OrkaTimeoutProcessor.new
-    @github_watcher = GitHubWatcher.new
+    @orka_start_processors = T.let(QueueType.values.to_h do |type|
+      [type, OrkaStartProcessor.new(type, type.name)]
+    end, T::Hash[QueueType, OrkaStartProcessor])
+    @orka_stop_processor = T.let(OrkaStopProcessor.new, OrkaStopProcessor)
+    @orka_timeout_processor = T.let(OrkaTimeoutProcessor.new, OrkaTimeoutProcessor)
+    @github_watcher = T.let(GitHubWatcher.new, GitHubWatcher)
 
-    @github_runner_metadata = GitHubRunnerMetadata.new
+    @github_runner_metadata = T.let(GitHubRunnerMetadata.new, GitHubRunnerMetadata)
 
-    @jobs = []
-    @expired_jobs = []
-    @last_webhook_check_time = Time.now.to_i
-    @loaded = false
+    @jobs = T.let([], T::Array[Job])
+    @expired_jobs = T.let([], T::Array[ExpiredJob])
+    @last_webhook_check_time = T.let(Time.now.to_i, Integer)
+    @loaded = T.let(false, T::Boolean)
   end
 
+  sig { void }
   def load
     raise "Already loaded state." if @loaded
     raise "Too late to load state." unless @jobs.empty?
 
     @file_mutex.synchronize do
-      state = JSON.parse(File.read(@config.state_file), create_additions: true)
-      if state["version"] == STATE_VERSION
+      state = T.cast(JSON.parse(File.read(@config.state_file), create_additions: true), T::Hash[String, T.untyped])
+      if T.cast(state["version"], Integer) == STATE_VERSION
         @jobs = state["jobs"]
         @expired_jobs = state["expired_jobs"]
         @last_webhook_check_time = state["last_webhook_check_time"]
 
-        load_pause_data state["paused"]
+        load_pause_data T.cast(state["paused"], T::Array[String])
       end
       @loaded = true
       puts "Loaded #{jobs.count} jobs from state file."
@@ -136,7 +195,7 @@ class SharedState
               job.github_state = :completed
             elsif !job.orka_setup_timeout?
               puts "Queueing #{job.runner_name} for deployment..."
-              @orka_start_processors[job.queue_type].queue << job
+              @orka_start_processors.fetch(job.queue_type).queue << job
             end
           else
             puts "Ready to expire #{job.runner_name}."
@@ -157,6 +216,7 @@ class SharedState
     end
   end
 
+  sig { void }
   def save
     @file_mutex.synchronize do
       state = {
@@ -175,56 +235,40 @@ class SharedState
     end
   end
 
+  sig { returns(T::Boolean) }
   def loaded?
     @loaded
   end
 
-  def jwt_github_client
-    payload = {
-      iat: Time.now.to_i - 60,
-      exp: Time.now.to_i + (9 * 60), # 10 is the max, but let's be safe with 9.
-      iss: @config.github_client_id,
-    }
-    token = JWT.encode(payload, @config.github_app_private_key, "RS256")
-
-    Octokit::Client.new(bearer_token: token)
-  end
-
-  def github_client
-    return @github_client if @github_client_expiry && (@github_client_expiry.to_i - Time.now.to_i) >= 300
-
-    jwt = jwt_github_client.create_app_installation_access_token(@config.github_installation_id)
-
-    @github_client = Octokit::Client.new(bearer_token: jwt.token)
-    @github_client.auto_paginate = true
-    @github_client_expiry = jwt.expires_at
-    @github_client
-  end
-
+  sig { returns(T::Array[ThreadRunner]) }
   def thread_runners
     [*@orka_start_processors.values, @orka_stop_processor, @orka_timeout_processor, @github_watcher].freeze
   end
 
+  sig { params(runner_name: String).returns(T.nilable(Job)) }
   def job(runner_name)
     @jobs.find { |job| job.runner_name == runner_name }
   end
 
+  sig { params(waiting_job: Job).returns(T::Boolean) }
   def free_slot?(waiting_job)
-    max_slots = QueueTypes.slots(waiting_job.queue_type)
+    max_slots = waiting_job.queue_type.slots
     @jobs.count { |job| job.queue_type == waiting_job.queue_type && !job.orka_vm_id.nil? } < max_slots
   end
 
+  sig { params(queue_type: QueueType).returns(T::Array[Job]) }
   def running_jobs(queue_type)
     jobs.select { |job| job.queue_type == queue_type && !job.orka_vm_id.nil? }
   end
 
   private
 
+  sig { params(pause_data: T::Array[String]).void }
   def load_pause_data(pause_data)
     pause_data.each do |key|
       thread_runner = thread_runners.find { |runner| runner.name == key }
       if thread_runner.nil?
-        $stderr.puts("Can't find thread runner #{key} to pause.")
+        T.cast($stderr, IO).puts("Can't find thread runner #{key} to pause.")
       elsif thread_runner.pausable?
         thread_runner.pause
       end
