@@ -28,7 +28,7 @@ GEM
     language_server-protocol (3.17.0.3)
     logger (1.6.1)
     multipart-post (2.4.1)
-    mustermann (3.0.2)
+    mustermann (3.0.3)
       ruby2_keywords (~> 0.0.1)
     net-http (0.4.1)
       uri
@@ -65,7 +65,7 @@ GEM
       rubocop-ast (>= 1.32.1, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 3.0)
-    rubocop-ast (1.32.1)
+    rubocop-ast (1.32.2)
       parser (>= 3.3.1.0)
     rubocop-performance (1.21.1)
       rubocop (>= 1.48.1, < 2.0)
