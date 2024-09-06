@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/Homebrew/orka_api_client
-  revision: 9f7af8e1aceddc0d950496d92cc4825ebf7adb40
+  revision: 50b00f9eec69dcbde4634ae13bba01f25bd5e065
   specs:
     orka_api_client (0.2.1)
       faraday (~> 2.0)
