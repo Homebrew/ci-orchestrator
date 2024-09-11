@@ -62,7 +62,7 @@ class Job
   end
 
   def dispatch_job?
-    tags.include("dispatch")
+    tags.include?("dispatch")
   end
 
   def long_build?
