@@ -23,14 +23,17 @@ class JobQueue
   def pop
     @mutex.synchronize do
       loop do
-        running_long_build_count = SharedState.instance.running_jobs(@queue_type).count(&:long_build?)
-        long_build_slots = QueueTypes.slots(@queue_type) / 2
-        @logger.call("Long builds: #{running_long_build_count} running, #{long_build_slots} available")
+        running_jobs = SharedState.instance.running_jobs(@queue_type)
+        running_long_build_count = running_jobs.count(&:long_build?)
+        running_dispatch_build_count = running_jobs.count(&:dispatch_job)
 
-        if running_long_build_count < long_build_slots && !@queue[:long].empty?
-          job = @queue[:long].shift
-          @logger.call("Long build slot available. Scheduling #{job.runner_name} for deployment...")
-          break job
+        # TODO: Change this to `/ 2` when Sequoia bottling is done.
+        non_default_build_slots = QueueTypes.slots(@queue_type) / 3
+
+        if running_long_build_count < non_default_build_slots && !@queue[:long].empty?
+          break @queue[:long].shift
+        elsif running_dispatch_build_count < non_default_build_slots && !@queue[:dispatch].empty?
+          break @queue[:dispatch].shift
         elsif !@queue[:default].empty?
           break @queue[:default].shift
         else

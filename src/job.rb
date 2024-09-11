@@ -32,7 +32,13 @@ class Job
     @orka_start_attempts = 0
     @secret = secret || SecureRandom.hex(32)
     @runner_completion_time = nil
-    @group = long_build? ? :long : :default
+    @group = if dispatch_job?
+      :dispatch
+    elsif long_build?
+      :long
+    else
+      :default
+    end
   end
 
   def os
@@ -53,6 +59,10 @@ class Job
 
   def tags
     @runner_name[NAME_REGEX, :tags]&.split("-").to_a
+  end
+
+  def dispatch_job?
+    tags.include("dispatch")
   end
 
   def long_build?
