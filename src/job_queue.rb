@@ -25,7 +25,7 @@ class JobQueue
       loop do
         running_jobs = SharedState.instance.running_jobs(@queue_type)
         running_long_build_count = running_jobs.count(&:long_build?)
-        running_dispatch_build_count = running_jobs.count(&:dispatch_job)
+        running_dispatch_build_count = running_jobs.count(&:dispatch_job?)
 
         # TODO: Change this to `/ 2` when Sequoia bottling is done.
         non_default_build_slots = QueueTypes.slots(@queue_type) / 3
