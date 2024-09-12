@@ -46,7 +46,7 @@ class OrkaStopProcessor < ThreadRunner
               log "VM for job #{job.runner_name} already deleted!"
             end
             job.orka_vm_id = nil
-            state.orka_free_condvar.broadcast
+            state.orka_start_processors[job.queue_type].signal_free(job.group)
             log "VM for job #{job.runner_name} deleted."
           end
         end

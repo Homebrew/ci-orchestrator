@@ -62,7 +62,7 @@ class SharedState
 
   attr_reader :config,
               :orka_client,
-              :orka_mutex, :orka_free_condvar, :github_mutex, :github_metadata_condvar,
+              :orka_mutex, :github_mutex, :github_metadata_condvar,
               :orka_start_processors, :orka_stop_processor, :orka_timeout_processor, :github_watcher,
               :github_runner_metadata,
               :jobs, :expired_jobs
@@ -75,7 +75,6 @@ class SharedState
     @orka_client = OrkaAPI::Client.new(@config.orka_base_url, token: @config.orka_token)
 
     @orka_mutex = Mutex.new
-    @orka_free_condvar = ConditionVariable.new
     @github_mutex = Mutex.new
     @github_metadata_condvar = ConditionVariable.new
     @file_mutex = Mutex.new

@@ -26,11 +26,17 @@ class OrkaStartProcessor < ThreadRunner
 
   def initialize(queue_type, name)
     super("#{self.class.name} (#{name})")
-    @queue = JobQueue.new(queue_type, method(:log))
+    @queue = JobQueue.new(queue_type)
+    @orka_free_condvar = ConditionVariable.new
   end
 
   def pausable?
     true
+  end
+
+  def signal_free(group)
+    @orka_free_condvar.signal
+    @queue.signal_free(group)
   end
 
   def run
@@ -64,7 +70,7 @@ class OrkaStartProcessor < ThreadRunner
         state.orka_mutex.synchronize do
           until state.free_slot?(job)
             log "Job #{job.runner_name} is waiting for a free slot."
-            state.orka_free_condvar.wait(state.orka_mutex)
+            @orka_free_condvar.wait(state.orka_mutex)
           end
 
           if paused?

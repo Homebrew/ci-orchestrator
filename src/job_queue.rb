@@ -5,12 +5,11 @@ require_relative "shared_state"
 
 # A variation of `Thread::Queue` that allows us to prioritise certain types of jobs.
 class JobQueue
-  def initialize(queue_type, logger)
+  def initialize(queue_type)
     @mutex = Mutex.new
     @queue = Hash.new { |h, k| h[k] = [] }
     @queue_type = queue_type
     @condvar = ConditionVariable.new
-    @logger = logger
   end
 
   def <<(job)
@@ -18,6 +17,13 @@ class JobQueue
       @queue[job.group] << job
       @condvar.signal
     end
+  end
+
+  def signal_free(group)
+    # No need to signal for groups without slot limits.
+    return if group == :default
+
+    @condvar.signal
   end
 
   def pop
