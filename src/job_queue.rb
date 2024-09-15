@@ -10,6 +10,10 @@ class JobQueue
     @queue = Hash.new { |h, k| h[k] = [] }
     @queue_type = queue_type
     @condvar = ConditionVariable.new
+
+    # Ideally, @long_build_slots + @dispatch_build_slots < QueueTypes.slots(@queue_type).
+    @long_build_slots = QueueTypes.slots(@queue_type) / 2
+    @dispatch_build_slots = QueueTypes.slots(@queue_type) / 4
   end
 
   def <<(job)
@@ -33,12 +37,9 @@ class JobQueue
         running_long_build_count = running_jobs.count(&:long_build?)
         running_dispatch_build_count = running_jobs.count(&:dispatch_job?)
 
-        # TODO: Change this to `/ 2` when Sequoia bottling is done.
-        non_default_build_slots = QueueTypes.slots(@queue_type) / 3
-
-        if running_long_build_count < non_default_build_slots && !@queue[:long].empty?
+        if running_long_build_count < @long_build_slots && !@queue[:long].empty?
           break @queue[:long].shift
-        elsif running_dispatch_build_count < non_default_build_slots && !@queue[:dispatch].empty?
+        elsif running_dispatch_build_count < @dispatch_build_slots && !@queue[:dispatch].empty?
           break @queue[:dispatch].shift
         elsif !@queue[:default].empty?
           break @queue[:default].shift
