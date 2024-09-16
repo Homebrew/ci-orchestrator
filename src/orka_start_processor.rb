@@ -18,7 +18,7 @@ class OrkaStartProcessor < ThreadRunner
     "13-arm64"       => "ventura-arm64",
     "14-x86_64"      => "sonoma",
     "14-arm64"       => "sonoma-arm64",
-    "15-x86_64"      => "sequoia-rosetta",
+    "15-x86_64"      => "sequoia",
     "15-arm64"       => "sequoia-arm64",
   }.freeze
 
