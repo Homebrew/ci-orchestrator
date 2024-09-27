@@ -137,8 +137,6 @@ class Job
   def queue_type
     if arm64?
       QueueType::MacOS_Arm64
-    elsif os.partition("-").first < "13"
-      QueueType::MacOS_x86_64_Legacy
     else
       QueueType::MacOS_x86_64
     end
