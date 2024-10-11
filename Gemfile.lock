@@ -43,7 +43,7 @@ GEM
     parser (3.3.5.0)
       ast (~> 2.4.1)
       racc
-    prism (1.1.0)
+    prism (1.2.0)
     public_suffix (6.0.1)
     puma (6.4.3)
       nio4r (~> 2.0)
