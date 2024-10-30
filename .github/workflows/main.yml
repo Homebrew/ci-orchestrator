@@ -68,8 +68,10 @@ jobs:
         service_account: ci-orchestrator-deploy@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
 
     - name: Configure Docker
+      env:
+        GCLOUD_ACCESS_TOKEN: ${{ steps.gcloud-auth.outputs.access_token }}
       run: |-
-        echo ${{ steps.gcloud-auth.outputs.access_token }} | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
+        echo "$GCLOUD_ACCESS_TOKEN" | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
 
     - name: Build Docker image
       run: |-
