@@ -1,3 +1,4 @@
+# This file is synced from the `.github` repository, do not modify it directly.
 name: Workflow Syntax
 
 on:
@@ -60,6 +61,8 @@ jobs:
 
   upload_sarif:
     needs: workflow_syntax
+    # We want to always upload this even if `actionlint` failed.
+    if: always() && !contains(fromJSON('[["cancelled", "skipped"]]'), needs.workflow_syntax.result)
     runs-on: ubuntu-latest
     permissions:
       contents: read
