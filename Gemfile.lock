@@ -143,7 +143,7 @@ DEPENDENCIES
   tapioca
 
 RUBY VERSION
-   ruby 3.3.5p100
+   ruby 3.3.6p108
 
 BUNDLED WITH
    2.5.20
