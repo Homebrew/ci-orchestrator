@@ -38,6 +38,7 @@ gem:
     - thor
     - tilt
     - unicode-display_width
+    - unicode-emoji
     - uri
     - webrick
     - yard-sorbet
