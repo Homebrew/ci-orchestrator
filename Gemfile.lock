@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/Homebrew/orka_api_client
-  revision: 4958d9397ac54b7642322e91bd0e814c6472ae31
+  revision: eeb0277f0e6f2091702c4274550056e802d465d1
   specs:
     orka_api_client (0.2.1)
       faraday (~> 2.0)
@@ -91,15 +91,15 @@ GEM
       rack-protection (= 4.1.1)
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
-    sorbet (0.5.11681)
-      sorbet-static (= 0.5.11681)
-    sorbet-runtime (0.5.11681)
-    sorbet-static (0.5.11681-aarch64-linux)
-    sorbet-static (0.5.11681-universal-darwin)
-    sorbet-static (0.5.11681-x86_64-linux)
-    sorbet-static-and-runtime (0.5.11681)
-      sorbet (= 0.5.11681)
-      sorbet-runtime (= 0.5.11681)
+    sorbet (0.5.11685)
+      sorbet-static (= 0.5.11685)
+    sorbet-runtime (0.5.11685)
+    sorbet-static (0.5.11685-aarch64-linux)
+    sorbet-static (0.5.11685-universal-darwin)
+    sorbet-static (0.5.11685-x86_64-linux)
+    sorbet-static-and-runtime (0.5.11685)
+      sorbet (= 0.5.11685)
+      sorbet-runtime (= 0.5.11685)
     spoom (1.5.0)
       erubi (>= 1.10.0)
       prism (>= 0.28.0)
