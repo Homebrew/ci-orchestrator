@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/Homebrew/orka_api_client
-  revision: 9996ad1e91b6ad7aaf62a062ed72550f6f7651e0
+  revision: df3f15abaf57c41f46fae16f9b5e65ff6386ff2e
   specs:
     orka_api_client (0.2.1)
       faraday (~> 2.0)
@@ -24,11 +24,11 @@ GEM
       net-http (>= 0.5.0)
     faraday-retry (2.2.1)
       faraday (~> 2.0)
-    json (2.9.0)
+    json (2.9.1)
     jwt (2.9.3)
       base64
     language_server-protocol (3.17.0.3)
-    logger (1.6.3)
+    logger (1.6.4)
     multipart-post (2.4.1)
     mustermann (3.0.3)
       ruby2_keywords (~> 0.0.1)
