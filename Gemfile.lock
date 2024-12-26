@@ -25,7 +25,7 @@ GEM
     faraday-retry (2.2.1)
       faraday (~> 2.0)
     json (2.9.1)
-    jwt (2.9.3)
+    jwt (2.10.0)
       base64
     language_server-protocol (3.17.0.3)
     logger (1.6.4)
