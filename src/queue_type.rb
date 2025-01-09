@@ -30,7 +30,7 @@ class QueueType < T::Enum
     when MacOS_x86_64
       12
     when MacOS_Arm64
-      10
+      8
     else
       T.absurd(self)
     end
