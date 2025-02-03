@@ -2,6 +2,7 @@ gem:
   exclude:
     - ast
     - base64
+    - benchmark
     - erubi
     - faraday-multipart
     - faraday-net_http
