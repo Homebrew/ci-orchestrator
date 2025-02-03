@@ -486,11 +486,11 @@ module OrkaAPI
 
       # _@return_ — True if the tokeb is valid for authentication.
       sig { returns(T::Boolean) }
-      attr_reader :authenticated?
+      def authenticated?; end
 
       # _@return_ — True if the token has been revoked.
       sig { returns(T::Boolean) }
-      attr_reader :token_revoked?
+      def token_revoked?; end
 
       # _@return_ — The user associated with the token.
       sig { returns(User) }
@@ -740,15 +740,15 @@ module OrkaAPI
 
       # _@return_ — True if IO boost is enabled for this VM.
       sig { returns(T::Boolean) }
-      attr_reader :io_boost?
+      def io_boost?; end
 
       # _@return_ — True if network boost is enabled for this VM.
       sig { returns(T::Boolean) }
-      attr_reader :net_boost?
+      def net_boost?; end
 
       # _@return_ — True if this VM is using a prior saved state rather than a clean base image.
       sig { returns(T::Boolean) }
-      attr_reader :use_saved_state?
+      def use_saved_state?; end
 
       # _@return_ — The port mappings established for this VM.
       sig { returns(T::Array[ProtocolPortMapping]) }
@@ -764,7 +764,7 @@ module OrkaAPI
 
       # _@return_ — Whether it was mandatory that this VM was deployed to the requested tag.
       sig { returns(T::Boolean) }
-      attr_reader :tag_required?
+      def tag_required?; end
     end
 
     # A general representation of {VMConfiguration VM configurations} and the {VMInstance VMs} deployed from those
@@ -964,7 +964,7 @@ module OrkaAPI
 
       # _@return_ — True if there are associated deployed VM instances.
       sig { returns(T::Boolean) }
-      attr_reader :deployed?
+      def deployed?; end
 
       # _@return_ — The list of deployed VM instances.
       sig { returns(T::Array[VMInstance]) }
@@ -996,22 +996,22 @@ module OrkaAPI
       # _@return_ — True if IO boost is enabled, specified by the associated VM configuration. This is
       # +nil+ if {#deployed?} is +true+.
       sig { returns(T.nilable(T::Boolean)) }
-      attr_reader :io_boost?
+      def io_boost?; end
 
       # _@return_ — True if network boost is enabled, specified by the associated VM configuration. This is
       # +nil+ if {#deployed?} is +true+.
       sig { returns(T.nilable(T::Boolean)) }
-      attr_reader :net_boost?
+      def net_boost?; end
 
       # _@return_ — True if the saved state should be used rather than cleanly from the base image,
       # specified by the associated VM configuration. This is +nil+ if {#deployed?} is +true+.
       sig { returns(T.nilable(T::Boolean)) }
-      attr_reader :use_saved_state?
+      def use_saved_state?; end
 
       # _@return_ — True if GPU passthrough is enabled, specified by the associated VM configuration. This
       # is +nil+ if {#deployed?} is +true+.
       sig { returns(T.nilable(T::Boolean)) }
-      attr_reader :gpu_passthrough?
+      def gpu_passthrough?; end
 
       sig { returns(T.nilable(String)) }
       attr_reader :configuration_template
@@ -1221,24 +1221,24 @@ module OrkaAPI
 
       # _@return_ — True if the VNC console should be enabled for deployed VMs of this configuration.
       sig { returns(T::Boolean) }
-      attr_reader :vnc_console?
+      def vnc_console?; end
 
       # _@return_ — True if IO boost should be enabled for deployed VMs of this configuration.
       sig { returns(T::Boolean) }
-      attr_reader :io_boost?
+      def io_boost?; end
 
       # _@return_ — True if network boost should be enabled for deployed VMs of this configuration.
       sig { returns(T::Boolean) }
-      attr_reader :net_boost?
+      def net_boost?; end
 
       # _@return_ — True if deployed VMs of this configuration should use a prior saved state (created via
       # {VMInstance#save_state}) rather than a clean base image.
       sig { returns(T::Boolean) }
-      attr_reader :use_saved_state?
+      def use_saved_state?; end
 
       # _@return_ — True if GPU passthrough should be enabled for deployed VMs of this configuration.
       sig { returns(T::Boolean) }
-      attr_reader :gpu_passthrough?
+      def gpu_passthrough?; end
 
       # _@return_ — The custom system serial number, if set.
       sig { returns(T.nilable(String)) }
@@ -1250,7 +1250,7 @@ module OrkaAPI
 
       # _@return_ — Whether it is mandatory that VMs are deployed to the requested tag.
       sig { returns(T::Boolean) }
-      attr_reader :tag_required?
+      def tag_required?; end
 
       # _@return_ — The scheduler mode chosen for VM deployment. Can be either +:default+ or +:most_allocated+.
       sig { returns(Symbol) }
@@ -1304,15 +1304,15 @@ module OrkaAPI
 
       # _@return_ — True if network boost is enabled for this VM.
       sig { returns(T::Boolean) }
-      attr_reader :io_boost?
+      def io_boost?; end
 
       # _@return_ — True if this VM is using a prior saved state rather than a clean base image.
       sig { returns(T::Boolean) }
-      attr_reader :use_saved_state?
+      def use_saved_state?; end
 
       # _@return_ — True if GPU passthrough is enabled for this VM.
       sig { returns(T::Boolean) }
-      attr_reader :gpu_passthrough?
+      def gpu_passthrough?; end
 
       # _@return_ — The port used to connect to the VM via VNC, if enabled.
       sig { returns(T.nilable(Integer)) }
