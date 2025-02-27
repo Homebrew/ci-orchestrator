@@ -1865,15 +1865,15 @@ class Faraday::RackBuilder
   # methods to push onto the various positions in the stack:
   #
   # source://faraday//lib/faraday/rack_builder.rb#118
-  def insert(index, *args, **_arg2, &block); end
+  def insert(index, *_arg1, **_arg2, &_arg3); end
 
   # source://faraday//lib/faraday/rack_builder.rb#127
-  def insert_after(index, *args, **_arg2, &block); end
+  def insert_after(index, *_arg1, **_arg2, &_arg3); end
 
   # methods to push onto the various positions in the stack:
   #
   # source://faraday//lib/faraday/rack_builder.rb#118
-  def insert_before(index, *args, **_arg2, &block); end
+  def insert_before(index, *_arg1, **_arg2, &_arg3); end
 
   # Locks the middleware stack to ensure no further modifications are made.
   #
@@ -1886,19 +1886,19 @@ class Faraday::RackBuilder
   def locked?; end
 
   # source://faraday//lib/faraday/rack_builder.rb#101
-  def request(key, *args, **_arg2, &block); end
+  def request(key, *_arg1, **_arg2, &_arg3); end
 
   # source://faraday//lib/faraday/rack_builder.rb#105
-  def response(key, *args, **_arg2, &block); end
+  def response(*_arg0, **_arg1, &_arg2); end
 
   # source://faraday//lib/faraday/rack_builder.rb#132
-  def swap(index, *args, **_arg2, &block); end
+  def swap(index, *_arg1, **_arg2, &_arg3); end
 
   # source://faraday//lib/faraday/rack_builder.rb#170
   def to_app; end
 
   # source://faraday//lib/faraday/rack_builder.rb#91
-  def use(klass, *args, **_arg2, &block); end
+  def use(klass, *_arg1, **_arg2, &_arg3); end
 
   private
 
@@ -1932,7 +1932,7 @@ class Faraday::RackBuilder
   def raise_if_locked; end
 
   # source://faraday//lib/faraday/rack_builder.rb#240
-  def use_symbol(mod, key, *args, **_arg3, &block); end
+  def use_symbol(mod, key, *_arg2, **_arg3, &_arg4); end
 end
 
 # borrowed from ActiveSupport::Dependencies::Reference &
