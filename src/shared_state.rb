@@ -3,12 +3,11 @@
 
 require "singleton"
 
-require "orka_api_client"
-
 require "openssl"
 require "jwt"
 require "base64"
 
+require_relative "orka_client"
 require_relative "github_client"
 require_relative "github_runner_metadata"
 require_relative "job"
@@ -86,14 +85,11 @@ class SharedState
   sig { returns(Config) }
   attr_reader :config
 
-  sig { returns(OrkaAPI::Client) }
+  sig { returns(OrkaClient) }
   attr_reader :orka_client
 
   sig { returns(GitHubClient) }
   attr_reader :github_client
-
-  sig { returns(Mutex) }
-  attr_reader :orka_mutex
 
   sig { returns(Mutex) }
   attr_reader :github_mutex
@@ -129,10 +125,9 @@ class SharedState
   def initialize
     @config = T.let(Config.new, Config)
 
-    @orka_client = T.let(OrkaAPI::Client.new(@config.orka_base_url, token: @config.orka_token), OrkaAPI::Client)
+    @orka_client = T.let(OrkaClient.new(@config.orka_base_url, token: @config.orka_token), OrkaClient)
     @github_client = T.let(GitHubClient.new, GitHubClient)
 
-    @orka_mutex = T.let(Mutex.new, Mutex)
     @github_mutex = T.let(Mutex.new, Mutex)
     @github_metadata_condvar = T.let(ConditionVariable.new, ConditionVariable)
     @file_mutex = T.let(Mutex.new, Mutex)
@@ -176,42 +171,36 @@ class SharedState
 
     return if @jobs.empty?
 
-    @orka_mutex.synchronize do
-      puts "Checking for VMs deleted during downtime..."
-      instances = @orka_client.vm_resources.flat_map(&:instances)
-      ids = instances.map(&:id)
-      @jobs.each do |job|
-        # Some VMs might have been deleted while we were in downtime.
-        if !job.orka_vm_id.nil? && !ids.include?(job.orka_vm_id)
-          puts "Job #{job.runner_name} no longer has a VM."
-          job.orka_vm_id = nil
-        end
+    puts "Checking for VMs deleted during downtime..."
 
-        if job.orka_vm_id.nil?
-          if job.github_state == :queued
-            if (Time.now.to_i - @last_webhook_check_time) > MAX_WEBHOOK_REDELIVERY_WINDOW
-              # Just assume we're done if we've been gone for a while.
-              puts "Marking #{job.runner_name} as completed as we've been gone for a while."
-              job.github_state = :completed
-            elsif !job.orka_setup_timeout?
-              puts "Queueing #{job.runner_name} for deployment..."
-              @orka_start_processors.fetch(job.queue_type).queue << job
-            end
-          else
-            puts "Ready to expire #{job.runner_name}."
-          end
-        elsif job.github_state == :completed || !job.orka_setup_complete?
-          puts "Queueing #{job.runner_name} for teardown..."
-          @orka_stop_processor.queue << job
-        end
+    instances = T.cast(
+      @orka_client.list(OrkaKube.virtual_machine_instance),
+      OrkaKube::DSL::Orka::V1::VirtualMachineInstanceList,
+    ).items
+    ids = instances.map { |instance| instance.metadata.name }
+    @jobs.each do |job|
+      # Some VMs might have been deleted while we were in downtime.
+      if !job.orka_vm_id.nil? && !ids.include?(job.orka_vm_id)
+        puts "Job #{job.runner_name} no longer has a VM."
+        job.orka_vm_id = nil
       end
 
-      puts "Checking for stuck deployments..."
-      instances.each do |instance|
-        next if instance.ip != "N/A"
-
-        puts "Deleting stuck deployment #{instance.id}."
-        instance.delete
+      if job.orka_vm_id.nil?
+        if job.github_state == :queued
+          if (Time.now.to_i - @last_webhook_check_time) > MAX_WEBHOOK_REDELIVERY_WINDOW
+            # Just assume we're done if we've been gone for a while.
+            puts "Marking #{job.runner_name} as completed as we've been gone for a while."
+            job.github_state = :completed
+          elsif !job.orka_setup_timeout?
+            puts "Queueing #{job.runner_name} for deployment..."
+            @orka_start_processors.fetch(job.queue_type).queue << job
+          end
+        else
+          puts "Ready to expire #{job.runner_name}."
+        end
+      elsif job.github_state == :completed || !job.orka_setup_complete?
+        puts "Queueing #{job.runner_name} for teardown..."
+        @orka_stop_processor.queue << job
       end
     end
   end

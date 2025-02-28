@@ -38,25 +38,20 @@ class OrkaTimeoutProcessor < ThreadRunner
       end
 
       state = SharedState.instance
-      state.orka_mutex.synchronize do
-        return if paused?
+      Thread.handle_interrupt(ShutdownException => :never) do
+        instances = T.cast(
+          state.orka_client.list(OrkaKube.virtual_machine_instance),
+          OrkaKube::DSL::Orka::V1::VirtualMachineInstanceList,
+        ).items
+        instances.each do |instance|
+          next if Time.parse(instance.metadata.creation_timestamp) > (Time.now - TIMEOUT_SECONDS)
+          next if state.jobs.any? { |job| instance.metadata.name == job.orka_vm_id }
 
-        Thread.handle_interrupt(ShutdownException => :never) do
-          state.orka_client.vm_resources.each do |resource|
-            resource.instances.each do |instance|
-              if instance.ip == "N/A"
-                log "Deleting stuck deployment #{instance.id} (#{instance.name})."
-                instance.delete
-              elsif instance.creation_time.to_time <= (Time.now - TIMEOUT_SECONDS) &&
-                    state.jobs.none? { |job| instance.id == job.orka_vm_id }
-                log "Deleting VM #{instance.id} (#{instance.name}) as unassigned for longer than 15 minutes."
-                instance.delete
-              end
-            end
-          end
-
-          nil
+          log "Deleting VM #{instance.metadata.name} as unassigned for longer than 15 minutes."
+          state.orka_client.watch(state.orka_client.delete(instance))
         end
+
+        nil
       end
     end
   rescue ShutdownException

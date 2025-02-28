@@ -1,5 +1,6 @@
-require:
+plugins:
   - rubocop-performance
+  - rubocop-rake
   - rubocop-sorbet
 
 AllCops:
@@ -8,8 +9,11 @@ AllCops:
   inherit_mode:
     merge:
       - Include
+      - Exclude
   Include:
     - .*/*.rb
+  Exclude:
+    - gen/**/*.rb
 
 Layout/CaseIndentation:
   EnforcedStyle: end
@@ -53,7 +57,7 @@ Metrics/ParameterLists:
 
 # Incompatible with Sorbet
 Naming/BlockForwarding:
-  Enabled: false
+  EnforcedStyle: explicit
 
 Sorbet/FalseSigil:
   Enabled: false
@@ -62,12 +66,14 @@ Sorbet/StrictSigil:
   Include:
     - src/server.rb
     - src/github_client.rb
+    - rakelib/*.rake
 Sorbet/StrongSigil:
   Enabled: true
   Exclude:
     - src/server.rb
     - src/github_client.rb
     - src/octokit/*.rb
+    - rakelib/*.rake
 
 Style/AndOr:
   EnforcedStyle: always

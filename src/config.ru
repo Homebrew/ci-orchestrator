@@ -1,10 +1,14 @@
 # typed: strong
 # frozen_string_literal: true
 
-Regexp.timeout = 1.0
-
 require "sorbet-runtime"
+
+T.let($LOAD_PATH, T::Array[String]).unshift(File.expand_path("../gen", __dir__))
+
 require_relative "server"
+
+Regexp.timeout = 1.0
+Faraday.default_connection_options = { headers: { user_agent: "Homebrew CI Orchestrator" } }
 
 T.bind(self, Rack::Builder)
 
