@@ -1,5 +1,8 @@
-require:
+plugins:
   - rubocop-performance
+  - rubocop-rake
+
+require:
   - rubocop-sorbet
 
 AllCops:
@@ -10,6 +13,8 @@ AllCops:
       - Include
   Include:
     - .*/*.rb
+  Exclude:
+    - gen/**/*.rb
 
 Layout/CaseIndentation:
   EnforcedStyle: end
@@ -62,12 +67,14 @@ Sorbet/StrictSigil:
   Include:
     - src/server.rb
     - src/github_client.rb
+    - rakelib/*.rake
 Sorbet/StrongSigil:
   Enabled: true
   Exclude:
     - src/server.rb
     - src/github_client.rb
     - src/octokit/*.rb
+    - rakelib/*.rake
 
 Style/AndOr:
   EnforcedStyle: always

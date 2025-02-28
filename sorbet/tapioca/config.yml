@@ -30,6 +30,7 @@ gem:
     - regexp_parser
     - rubocop-ast
     - rubocop-performance
+    - rubocop-rake
     - rubocop-sorbet
     - rubocop
     - ruby-progressbar

@@ -3,8 +3,12 @@
 
 Regexp.timeout = 1.0
 
+$LOAD_PATH.unshift(File.expand_path("../gen", __dir__))
+
 require "sorbet-runtime"
 require_relative "server"
+
+Faraday.default_connection_options = { headers: { user_agent: "Homebrew CI Orchestrator" } }
 
 T.bind(self, Rack::Builder)
 
