@@ -27,6 +27,7 @@ gem:
     - rackup
     - rainbow
     - rbi
+    - rbs
     - regexp_parser
     - rubocop-ast
     - rubocop-performance
