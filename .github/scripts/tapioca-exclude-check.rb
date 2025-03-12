@@ -6,11 +6,14 @@ require "psych"
 
 RBI_ALLOWLIST = %w[
   addressable
+  dry-inflector
   faraday
   jwt
+  kube-dsl
   octokit
   rack-session
   rack
+  rake
   sinatra
 ].freeze
 

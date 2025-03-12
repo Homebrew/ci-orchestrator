@@ -93,7 +93,9 @@ jobs:
         CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
         DOMAIN: ${{ secrets.DOMAIN }}
         PUBLIC_IP: ${{ secrets.PUBLIC_IP }}
-        ORKA_BASE_URL: ${{ secrets.ORKA_BASE_URL }}
+        ORKA_IP: ${{ secrets.ORKA_IP }}
+        ORKA_DOMAIN: ${{ secrets.ORKA_DOMAIN }}
+        ORKA_K8S_DOMAIN: ${{ secrets.ORKA_K8S_DOMAIN }}
         GITHUB_CLIENT_ID: ${{ secrets.GITHUBCLIENT_ID }}
         GITHUB_ORGANISATION: ${{ github.repository_owner }}
         GITHUB_INSTALLATION_ID: ${{ secrets.GITHUBAPP_INSTALLATION_ID }}
@@ -101,11 +103,14 @@ jobs:
         sed -f /dev/stdin deployment.yml.in > deployment.yml <<SED_SCRIPT
           s|@IMAGE@|$IMAGE|g
           s|@CERTBOT_EMAIL@|$CERTBOT_EMAIL|g
+          s|@ORKA_IP@|$ORKA_IP|g
+          s|@ORKA_DOMAIN@|$ORKA_DOMAIN|g
+          s|@ORKA_K8S_DOMAIN@|$ORKA_K8S_DOMAIN|g
         SED_SCRIPT
         sed -f /dev/stdin config.yml.in > config.yml <<SED_SCRIPT
           s|@DOMAIN@|$DOMAIN|g
           s|@PUBLIC_IP@|$PUBLIC_IP|g
-          s|@ORKA_BASE_URL@|$ORKA_BASE_URL|g
+          s|@ORKA_DOMAIN@|$ORKA_DOMAIN|g
           s|@GITHUB_CLIENT_ID@|$GITHUB_CLIENT_ID|g
           s|@GITHUB_ORGANISATION@|$GITHUB_ORGANISATION|g
           s|@GITHUB_INSTALLATION_ID@|$GITHUB_INSTALLATION_ID|g

@@ -14,6 +14,11 @@ spec:
         app: ci-orchestrator
     spec:
       terminationGracePeriodSeconds: 1800
+      hostAliases:
+      - ip: "@ORKA_IP@"
+        hostnames:
+        - "@ORKA_DOMAIN@"
+        - "@ORKA_K8S_DOMAIN@"
       containers:
       - name: ci-orchestrator
         image: @IMAGE@

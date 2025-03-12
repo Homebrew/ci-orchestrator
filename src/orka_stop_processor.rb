@@ -37,23 +37,20 @@ class OrkaStopProcessor < ThreadRunner
         end
 
         state = SharedState.instance
-        state.orka_mutex.synchronize do
-          if paused?
-            @queue << job
-            next
+        Thread.handle_interrupt(ShutdownException => :never) do
+          log "Deleting VM #{job.orka_vm_id} for job #{job.runner_name}..."
+          begin
+            state.orka_client.watch(state.orka_client.delete(OrkaKube.virtual_machine_instance do
+              metadata do
+                name T.must(job.orka_vm_id)
+              end
+            end))
+          rescue Faraday::ResourceNotFound
+            log "VM for job #{job.runner_name} already deleted!"
           end
-
-          Thread.handle_interrupt(ShutdownException => :never) do
-            log "Deleting VM for job #{job.runner_name}..."
-            begin
-              state.orka_client.vm_resource(T.must(job.orka_vm_id)).delete_all_instances
-            rescue OrkaAPI::ResourceNotFoundError
-              log "VM for job #{job.runner_name} already deleted!"
-            end
-            job.orka_vm_id = nil
-            state.orka_start_processors.fetch(job.queue_type).signal_free(job.priority_type)
-            log "VM for job #{job.runner_name} deleted."
-          end
+          job.orka_vm_id = nil
+          state.orka_start_processors.fetch(job.queue_type).signal_free(job.priority_type)
+          log "VM for job #{job.runner_name} deleted."
         end
 
         if job.github_state == :queued

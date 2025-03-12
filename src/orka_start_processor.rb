@@ -30,6 +30,7 @@ class OrkaStartProcessor < ThreadRunner
   def initialize(queue_type, name)
     super("#{self.class.name} (#{name})")
     @queue = T.let(JobQueue.new(queue_type), JobQueue)
+    @orka_free_mutex = T.let(Mutex.new, Mutex)
     @orka_free_condvar = T.let(ConditionVariable.new, ConditionVariable)
   end
 
@@ -73,70 +74,75 @@ class OrkaStartProcessor < ThreadRunner
           end
         end
 
-        state.orka_mutex.synchronize do
+        @orka_free_mutex.synchronize do
           until state.free_slot?(job)
             log "Job #{job.runner_name} is waiting for a free slot."
-            @orka_free_condvar.wait(state.orka_mutex)
+            @orka_free_condvar.wait(@orka_free_mutex)
           end
-
-          if paused?
-            @queue << job
-            next
-          end
-
-          if job.github_state != :queued
-            log "Job #{job.runner_name} no longer in queued state, skipping."
-            next
-          end
-
-          runner_application = github_metadata.runner_application_for_job(job)
-
-          vm_metadata = {
-            runner_registration_token: T.must(github_metadata.registration_token).token,
-            runner_label:              job.runner_labels.join(","),
-            runner_name:               job.runner_name,
-            runner_config_args:        "--ephemeral --disableupdate --no-default-labels",
-            runner_download:           runner_application.url,
-            runner_download_sha256:    runner_application.sha256,
-            orchestrator_secret:       job.secret,
-          }
-
-          config = CONFIG_MAP.fetch(job.os)
-          job.orka_setup_time = nil
-
-          full_host_retry_count = 0
-          Thread.handle_interrupt(ShutdownException => :never) do
-            if job.orka_vm_id.nil?
-              log "Deploying VM for job #{job.runner_name}..."
-              result = state.orka_client
-                            .vm_configuration(config)
-                            .deploy(vm_metadata:)
-              job.orka_start_attempts += 1
-              job.orka_vm_id = result.resource.name
-              job.orka_setup_time = Time.now.to_i
-              log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
-            end
-          rescue Faraday::ServerError => e
-            if e.response_body&.include?("Cannot deploy more than 2 VMs on an ARM host") && full_host_retry_count < 3
-              full_host_retry_count += 1
-              log "Host full. Retrying..."
-              sleep(10)
-              retry
-            end
-
-            log("Error 500 deploying VM for job #{job.runner_name}: #{e.response_body}", error: true)
-
-            job.orka_setup_timeout = true
-            job.orka_setup_time = Time.now.to_i
-          rescue Faraday::TimeoutError
-            log("Timeout when deploying VM for job #{job.runner_name}.", error: true)
-
-            job.orka_setup_timeout = true
-            job.orka_setup_time = Time.now.to_i
-          end
-
-          state.orka_stop_processor.queue << job if !job.orka_vm_id.nil? && job.github_state == :completed
         end
+
+        if paused?
+          @queue << job
+          next
+        end
+
+        if job.github_state != :queued
+          log "Job #{job.runner_name} no longer in queued state, skipping."
+          next
+        end
+
+        runner_application = github_metadata.runner_application_for_job(job)
+        config = CONFIG_MAP.fetch(job.os)
+
+        definition = OrkaKube.virtual_machine_instance do
+          metadata do
+            generate_name "#{config}-"
+            labels do
+              add :"orka.macstadium.com/vm-config", config
+            end
+          end
+          spec do
+            custom_vm_metadata do
+              add :runner_registration_token, T.must(github_metadata.registration_token).token
+              add :runner_label, job.runner_labels.join(",")
+              add :runner_name, job.runner_name
+              add :runner_config_args, "--ephemeral --disableupdate --no-default-labels"
+              add :runner_download, runner_application.url
+              add :runner_download_sha256, runner_application.sha256
+              add :orchestrator_secret, job.secret
+            end
+          end
+        end
+
+        job.orka_setup_time = nil
+
+        Thread.handle_interrupt(ShutdownException => :never) do
+          if job.orka_vm_id.nil?
+            log "Deploying VM for job #{job.runner_name}..."
+            result = state.orka_client.watch(state.orka_client.create(definition)) do |candidate|
+              candidate.status.phase != "Pending"
+            end
+            job.orka_start_attempts += 1
+            job.orka_vm_id = result.metadata.name
+            job.orka_setup_time = Time.now.to_i
+            log "VM for job #{job.runner_name} deployed (#{job.orka_vm_id})."
+
+            if result.status.phase != "Running"
+              log("Job #{job.runner_name} phase is #{result.status.phase} (errors: #{result.status.error_message})",
+                  error: true)
+
+              job.orka_setup_timeout = true
+              job.orka_setup_time = Time.now.to_i
+            end
+          end
+        rescue Faraday::TimeoutError
+          log("Timeout when deploying VM for job #{job.runner_name}.", error: true)
+
+          job.orka_setup_timeout = true
+          job.orka_setup_time = Time.now.to_i
+        end
+
+        state.orka_stop_processor.queue << job if !job.orka_vm_id.nil? && job.github_state == :completed
       end
     rescue ShutdownException
       break
