@@ -120,7 +120,7 @@ class OrkaStartProcessor < ThreadRunner
           if job.orka_vm_id.nil?
             log "Deploying VM for job #{job.runner_name}..."
             result = state.orka_client.watch(state.orka_client.create(definition)) do |candidate|
-              candidate.status.phase != "Pending"
+              !candidate.status.phase.to_s.empty? && candidate.status.phase != "Pending"
             end
             job.orka_start_attempts += 1
             job.orka_vm_id = result.metadata.name
