@@ -27,10 +27,8 @@ class QueueType < T::Enum
   sig { returns(Integer) }
   def slots
     case self
-    when MacOS_x86_64
+    when MacOS_Arm64, MacOS_x86_64
       12
-    when MacOS_Arm64
-      8
     else
       T.absurd(self)
     end
