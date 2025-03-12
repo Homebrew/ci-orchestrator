@@ -122,7 +122,7 @@ class KubeClient
         raise ArgumentError, "Invalid resource" if name.nil? || resource_version.nil?
 
         url << "?watch=1" \
-            << "&field.selector=#{ERB::Util.url_encode("metadata.name=#{name}")}" \
+            << "&fieldSelector=#{ERB::Util.url_encode("metadata.name=#{name}")}" \
             << "&resourceVersion=#{ERB::Util.url_encode(resource_version)}"
       elsif Faraday::METHODS_WITH_QUERY.include?(method.to_s)
         name = T.let(metadata["name"], T.nilable(String)) if metadata.is_a?(Hash)
