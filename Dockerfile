@@ -1,12 +1,14 @@
 ARG RUBY_VERSION
 FROM ruby:$RUBY_VERSION-alpine
 
-RUN apk add --no-cache --virtual .build-deps build-base
-
 WORKDIR /app
-COPY .ruby-version Gemfile* /app
+COPY .ruby-version Gemfile* /app/
+
 ENV BUNDLE_DEPLOYMENT=1
-RUN bundle install && apk del --no-cache .build-deps
+
+RUN apk add --no-cache --virtual .build-deps build-base && \
+    bundle install && \
+    apk del --no-cache .build-deps
 
 COPY src /app
 COPY gen /gen
