@@ -23,6 +23,7 @@ updates:
       timezone: Europe/London
     allow:
       - dependency-type: all
+    versioning-strategy: lockfile-only
     commit-message:
       prefix: Gemfile.lock
     groups:
@@ -40,28 +41,7 @@ updates:
           - minor
           - patch
 
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: daily
-    allow:
-      - dependency-type: all
-
   - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: daily
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: devcontainers
-    directory: /
-    schedule:
-      interval: daily
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: pip
     directory: /
     schedule:
       interval: daily

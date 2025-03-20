@@ -6,7 +6,7 @@ ruby file: ".ruby-version"
 
 gem "faraday-retry" # for octokit
 gem "jwt"
-gem "kube-dsl"
+gem "kube-dsl", "!= 0.8.2"
 gem "octokit"
 gem "puma"
 gem "rackup"
