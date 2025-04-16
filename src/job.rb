@@ -30,6 +30,9 @@ class Job
   sig { returns(String) }
   attr_reader :secret
 
+  sig { returns(T.nilable(GitHub::GeneratedJITConfig)) }
+  attr_accessor :generated_jit_config
+
   sig { returns(PriorityType) }
   attr_reader :priority_type
 
@@ -64,6 +67,7 @@ class Job
     @orka_setup_timeout = T.let(false, T::Boolean)
     @orka_start_attempts = T.let(0, Integer)
     @secret = T.let(secret || SecureRandom.hex(32), String)
+    @generated_jit_config = nil
     @runner_completion_time = nil
 
     priority_type = if dispatch_job?
@@ -142,6 +146,36 @@ class Job
     end
   end
 
+  sig { void }
+  def generate_jit_config!
+    state = SharedState.instance
+    org = state.config.github_organisation
+
+    unless (jit_config = @generated_jit_config).nil?
+      begin
+        state.github_client.org_runner(org, id: jit_config.runner_id)
+      rescue Octokit::NotFound
+        @generated_jit_config = nil
+      end
+    end
+
+    return unless @generated_jit_config.nil?
+
+    begin
+      @generated_jit_config = state.github_client.generate_jitconfig(
+        state.config.github_organisation,
+        name:   runner_name,
+        labels: runner_labels,
+      )
+    rescue Octokit::Conflict
+      runner = state.github_client.org_runners(org).find { |runner| runner.name == runner_name }
+      raise if runner.nil?
+
+      state.github_client.delete_org_runner(org, runner)
+      retry
+    end
+  end
+
   sig { params(object: T::Hash[String, T.untyped]).returns(T.attached_class) }
   def self.json_create(object)
     job = new(
@@ -155,6 +189,7 @@ class Job
     job.orka_setup_time = T.cast(object["orka_setup_time"], T.nilable(Integer))
     job.orka_setup_timeout = T.cast(object["orka_setup_timeout"], T::Boolean)
     job.orka_start_attempts = T.cast(object["orka_start_attempts"], Integer)
+    job.generated_jit_config = T.cast(object["generated_jit_config"], T.nilable(GitHub::GeneratedJITConfig))
     job.runner_completion_time = T.cast(object["runner_completion_time"], T.nilable(Integer))
     job
   end
@@ -172,6 +207,7 @@ class Job
       "orka_setup_timeout"     => @orka_setup_timeout,
       "orka_start_attempts"    => @orka_start_attempts,
       "secret"                 => @secret,
+      "generated_jit_config"   => @generated_jit_config,
       "runner_completion_time" => @runner_completion_time,
     }.to_json(state)
   end

@@ -59,9 +59,7 @@ class OrkaStartProcessor < ThreadRunner
         github_metadata = state.github_runner_metadata
         github_mutex = state.github_mutex
         github_mutex.synchronize do
-          while github_metadata.registration_token.nil? ||
-                (T.must(github_metadata.registration_token).expires_at.to_i - Time.now.to_i) < 300 ||
-                github_metadata.download_urls.nil?
+          while github_metadata.download_urls.nil?
             log "Waiting for GitHub metadata..."
             state.github_metadata_condvar.wait(github_mutex)
           end
@@ -91,6 +89,8 @@ class OrkaStartProcessor < ThreadRunner
           next
         end
 
+        job.generate_jit_config!
+
         runner_application = github_metadata.runner_application_for_job(job)
         config = CONFIG_MAP.fetch(job.os)
 
@@ -103,10 +103,8 @@ class OrkaStartProcessor < ThreadRunner
           end
           spec do
             custom_vm_metadata do
-              add :runner_registration_token, T.must(github_metadata.registration_token).token
-              add :runner_label, job.runner_labels.join(",")
               add :runner_name, job.runner_name
-              add :runner_config_args, "--ephemeral --disableupdate --no-default-labels"
+              add :runner_jitconfig, T.must(job.generated_jit_config).encoded_jit_config
               add :runner_download, runner_application.url
               add :runner_download_sha256, runner_application.sha256
               add :orchestrator_secret, job.secret

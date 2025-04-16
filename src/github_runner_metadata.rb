@@ -5,9 +5,6 @@
 class GitHubRunnerMetadata
   extend T::Sig
 
-  sig { returns(T.nilable(GitHub::RunnerRegistrationToken)) }
-  attr_accessor :registration_token
-
   sig { returns(T.nilable(T::Hash[String, T::Hash[String, GitHub::RunnerApplication]])) }
   attr_accessor :download_urls
 
@@ -16,7 +13,6 @@ class GitHubRunnerMetadata
 
   sig { void }
   def initialize
-    @registration_token = nil
     @download_urls = T.let(nil, T.nilable(T::Hash[String, T::Hash[String, GitHub::RunnerApplication]]))
     @download_fetch_time = T.let(nil, T.nilable(Time))
   end
@@ -30,10 +26,4 @@ class GitHubRunnerMetadata
 
     runner_application
   end
-
-  sig { override.returns(String) }
-  def to_s
-    "Runner Metadata"
-  end
-  alias inspect to_s
 end
