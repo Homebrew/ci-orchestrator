@@ -7,8 +7,8 @@ require_relative "octokit/self_hosted_runner"
 require_relative "octokit/actions_workflow_run_attempt"
 
 require_relative "github/app_hook_delivery"
+require_relative "github/generated_jit_config"
 require_relative "github/runner_application"
-require_relative "github/runner_registration_token"
 require_relative "github/runner"
 
 # Type-safe wrapper for Octokit.
@@ -20,10 +20,10 @@ class GitHubClient
     octokit_client.organization_member?(org, username)
   end
 
-  sig { params(org: String).returns(GitHub::RunnerRegistrationToken) }
-  def create_org_runner_registration_token(org)
-    result = octokit_client.create_org_runner_registration_token(org)
-    GitHub::RunnerRegistrationToken.new(token: result.token, expires_at: result.expires_at)
+  sig { params(org: String, name: String, labels: T::Array[String]).returns(GitHub::GeneratedJITConfig) }
+  def generate_jitconfig(org, name:, labels:)
+    result = octokit_client.generate_jit_config(org, name:, labels:, runner_group_id: 1)
+    GitHub::GeneratedJITConfig.new(runner_id: result.runner.id, encoded_jit_config: result.encoded_jit_config)
   end
 
   sig { params(org: String).returns(T::Hash[String, T::Hash[String, GitHub::RunnerApplication]]) }
@@ -72,6 +72,15 @@ class GitHubClient
   sig { params(id: Integer).void }
   def deliver_app_hook(id)
     jwt_octokit_client.deliver_app_hook(id)
+  end
+
+  sig { params(org: String, id: Integer).returns(GitHub::Runner) }
+  def org_runner(org, id:)
+    runner = octokit_client.org_runner(org, id)
+    GitHub::Runner.new(
+      id:   runner.id,
+      name: runner.name,
+    )
   end
 
   sig { params(org: String).returns(T::Array[GitHub::Runner]) }

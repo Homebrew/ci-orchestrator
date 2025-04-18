@@ -11,6 +11,10 @@ module Octokit
         post "#{Organization.path org}/actions/runners/registration-token", options
       end
 
+      def org_runner(org, runner_id, options = {})
+        get "#{Organization.path org}/actions/runners/#{runner_id}", options
+      end
+
       def org_runners(org, options = {})
         paginate "#{Organization.path org}/actions/runners", options
       end
@@ -23,6 +27,10 @@ module Octokit
         get "#{Organization.path org}/actions/runners/downloads", options
       end
       alias list_org_runner_applications org_runner_applications
+
+      def generate_jit_config(org, options = {})
+        post "#{Organization.path org}/actions/runners/generate-jitconfig", options
+      end
     end
 
     include ActionsSelfHostedRunners

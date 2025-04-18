@@ -10,7 +10,6 @@ class GitHubWatcher < ThreadRunner
     log "Started #{name}."
 
     loop do
-      refresh_token
       refresh_download_urls
       redeliver_webhooks
       Thread.handle_interrupt(ShutdownException => :never) do
@@ -27,32 +26,6 @@ class GitHubWatcher < ThreadRunner
   end
 
   private
-
-  sig { void }
-  def refresh_token
-    state = SharedState.instance
-    metadata = state.github_runner_metadata
-    token = metadata.registration_token
-    if token.nil? || (token.expires_at.to_i - Time.now.to_i) < 600
-      begin
-        token = state.github_client
-                     .create_org_runner_registration_token(state.config.github_organisation)
-      rescue Octokit::Error
-        log("Error retrieving runner registration token.", error: true)
-        return
-      end
-
-      metadata.registration_token = token
-      state.github_mutex.synchronize do
-        state.github_metadata_condvar.broadcast
-      end
-    end
-  rescue ShutdownException
-    Thread.current.kill
-  rescue => e
-    log(e.to_s, error: true)
-    log(e.backtrace.to_s, error: true)
-  end
 
   sig { void }
   def refresh_download_urls
