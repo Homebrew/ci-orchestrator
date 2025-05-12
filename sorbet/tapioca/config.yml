@@ -26,6 +26,7 @@ gem:
     - rbi
     - rbs
     - regexp_parser
+    - rexml
     - rubocop-ast
     - rubocop-performance
     - rubocop-rake
