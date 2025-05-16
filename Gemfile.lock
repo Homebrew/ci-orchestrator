@@ -58,11 +58,11 @@ GEM
       prism (~> 1.0)
       rbs (>= 3.4.4)
       sorbet-runtime (>= 0.5.9204)
-    rbs (3.9.3)
+    rbs (3.9.4)
       logger
     regexp_parser (2.10.0)
     rexml (3.4.1)
-    rubocop (1.75.5)
+    rubocop (1.75.6)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
@@ -97,14 +97,14 @@ GEM
       rack-protection (= 4.1.1)
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
-    sorbet (0.5.12099)
-      sorbet-static (= 0.5.12099)
-    sorbet-runtime (0.5.12099)
-    sorbet-static (0.5.12099-aarch64-linux)
-    sorbet-static (0.5.12099-x86_64-linux)
-    sorbet-static-and-runtime (0.5.12099)
-      sorbet (= 0.5.12099)
-      sorbet-runtime (= 0.5.12099)
+    sorbet (0.5.12109)
+      sorbet-static (= 0.5.12109)
+    sorbet-runtime (0.5.12109)
+    sorbet-static (0.5.12109-aarch64-linux)
+    sorbet-static (0.5.12109-x86_64-linux)
+    sorbet-static-and-runtime (0.5.12109)
+      sorbet (= 0.5.12109)
+      sorbet-runtime (= 0.5.12109)
     spoom (1.6.3)
       erubi (>= 1.10.0)
       prism (>= 0.28.0)
@@ -136,8 +136,6 @@ GEM
 PLATFORMS
   aarch64-linux
   aarch64-linux-musl
-  arm64-darwin
-  x86_64-darwin
   x86_64-linux
   x86_64-linux-musl
 
