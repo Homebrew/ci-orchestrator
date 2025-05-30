@@ -48,7 +48,8 @@ jobs:
     environment: production
     concurrency: production
     env:
-      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/homebrew-docker/ci-orchestrator:${{ github.sha }}
+      GOOGLE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/homebrew-docker/ci-orchestrator:${{ github.sha }}
+      AWS_IMAGE: "${{ secrets.AWS_PROJECT_ID }}.dkr.ecr.us-east-1.amazonaws.com/orchestrator-ecr:${{ github.sha }}"
     permissions:
       contents: read
       id-token: write
@@ -73,13 +74,22 @@ jobs:
       run: |-
         echo "$GCLOUD_ACCESS_TOKEN" | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
 
-    - name: Build Docker image
+    - name: Build Docker image (GOOGLE)
       run: |-
-        docker build --tag "$IMAGE" --build-arg RUBY_VERSION="$(<.ruby-version)" .
+        docker build --tag "$GOOGLE_IMAGE" --build-arg RUBY_VERSION="$(<.ruby-version)" .
 
-    - name: Publish Docker image
+    - name: Publish Docker image (GOOGLE)
       run: |-
-        docker push "$IMAGE"
+        docker push "$GOOGLE_IMAGE"
+
+    - name: Retag image (AWS)
+      run: |-
+        docker image tag "$GOOGLE_IMAGE" "$AWS_IMAGE"
+
+    - name: Push to (AWS)
+      # Not deployed yet, needs missing infrastructure
+      run: |
+        docker push "$AWS_IMAGE"
 
     - name: Get GKE credentials
       uses: google-github-actions/get-gke-credentials@d0cee45012069b163a631894b98904a9e6723729 # v2.3.3
