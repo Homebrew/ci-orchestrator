@@ -1,49 +1,46 @@
+# This file is synced from the `.github` repository, do not modify it directly.
+---
 version: 2
-
 updates:
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: daily
-      time: "14:30"
-      timezone: Europe/London
-    allow:
-      - dependency-type: all
-    # The actions in triage-issues.yml are updated in the Homebrew/.github repo
-    ignore:
-      - dependency-name: actions/stale
-    commit-message:
-      prefix: workflows
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+    day: friday
+    time: '08:00'
+    timezone: Etc/UTC
+  allow:
+  - dependency-type: all
+  groups:
+    github-actions:
+      patterns:
+      - "*"
+- package-ecosystem: bundler
+  directories:
+  - "/"
+  - "/Library/Homebrew"
+  schedule:
+    interval: weekly
+    day: friday
+    time: '08:00'
+    timezone: Etc/UTC
+  allow:
+  - dependency-type: all
+  groups:
+    bundler:
+      patterns:
+      - "*"
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    interval: weekly
+    day: friday
+    time: '08:00'
+    timezone: Etc/UTC
+  allow:
+  - dependency-type: all
+  groups:
+    docker:
+      patterns:
+      - "*"
 
-  - package-ecosystem: bundler
-    directory: /
-    schedule:
-      interval: daily
-      time: "14:30"
-      timezone: Europe/London
-    allow:
-      - dependency-type: all
-    versioning-strategy: lockfile-only
-    commit-message:
-      prefix: Gemfile.lock
-    groups:
-      security:
-        applies-to: security-updates
-        patterns:
-          - "*"
-      major:
-        applies-to: version-updates
-        update-types:
-          - major
-      minor-patch:
-        applies-to: version-updates
-        update-types:
-          - minor
-          - patch
-
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: daily
-    allow:
-      - dependency-type: all
