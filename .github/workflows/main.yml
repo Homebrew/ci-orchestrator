@@ -48,7 +48,10 @@ jobs:
     environment: production
     concurrency: production
     env:
-      IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/homebrew-docker/ci-orchestrator:${{ github.sha }}
+      GOOGLE_REGISTRY: us-central1-docker.pkg.dev
+      GOOGLE_IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/homebrew-docker/ci-orchestrator:${{ github.sha }}
+      AWS_REGISTRY: "${{ secrets.AWS_PROJECT_ID }}.dkr.ecr.us-east-1.amazonaws.com/orchestrator-ecr"
+      AWS_IMAGE: "${{ secrets.AWS_PROJECT_ID }}.dkr.ecr.us-east-1.amazonaws.com/orchestrator-ecr:${{ github.sha }}"
     permissions:
       contents: read
       id-token: write
@@ -67,19 +70,42 @@ jobs:
         workload_identity_provider: projects/${{ secrets.GCP_PROJECT_NUM }}/locations/global/workloadIdentityPools/ci-orchestrator-deploy/providers/github-actions
         service_account: ci-orchestrator-deploy@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
 
-    - name: Configure Docker
+    - name: Login GOOGLE docker registry
       env:
         GCLOUD_ACCESS_TOKEN: ${{ steps.gcloud-auth.outputs.access_token }}
       run: |-
-        echo "$GCLOUD_ACCESS_TOKEN" | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
+        echo "$GCLOUD_ACCESS_TOKEN" | docker login -u oauth2accesstoken --password-stdin "$GOOGLE_REGISTRY"
 
-    - name: Build Docker image
+    - name: Build Docker image (GOOGLE)
       run: |-
-        docker build --tag "$IMAGE" --build-arg RUBY_VERSION="$(<.ruby-version)" .
+        docker build --tag "$GOOGLE_IMAGE" --build-arg RUBY_VERSION="$(<.ruby-version)" .
 
-    - name: Publish Docker image
+    - name: Publish Docker image (GOOGLE)
       run: |-
-        docker push "$IMAGE"
+        docker push "$GOOGLE_IMAGE"
+
+    - name: Logout from GOOGLE docker registry
+      run: |-
+        docker logout "$GOOGLE_REGISTRY"
+
+    - name: Authenticate to AWS
+      uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
+      with:
+        role-to-assume: arn:aws:iam::${{ secrets.AWS_PROJECT_ID }}:role/GithubActionsRoleECRPush
+        aws-region: us-east-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076
+
+    - name: Retag image (AWS)
+      run: |-
+        docker image tag "$GOOGLE_IMAGE" "$AWS_IMAGE"
+
+    - name: Push to AWS
+      # Not deployed yet, needs missing infrastructure
+      run: |
+        docker push "$AWS_IMAGE"
 
     - name: Get GKE credentials
       uses: google-github-actions/get-gke-credentials@d0cee45012069b163a631894b98904a9e6723729 # v2.3.3
