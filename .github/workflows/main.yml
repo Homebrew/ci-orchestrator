@@ -127,7 +127,7 @@ jobs:
         GITHUB_INSTALLATION_ID: ${{ secrets.GITHUBAPP_INSTALLATION_ID }}
       run: |-
         sed -f /dev/stdin deployment.yml.in > deployment.yml <<SED_SCRIPT
-          s|@IMAGE@|$IMAGE|g
+          s|@IMAGE@|$GOOGLE_IMAGE|g
           s|@CERTBOT_EMAIL@|$CERTBOT_EMAIL|g
           s|@ORKA_IP@|$ORKA_IP|g
           s|@ORKA_DOMAIN@|$ORKA_DOMAIN|g
