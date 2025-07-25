@@ -89,14 +89,14 @@ jobs:
         docker logout "$GOOGLE_REGISTRY"
 
     - name: Authenticate to AWS
-      uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df
+      uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
       with:
         role-to-assume: arn:aws:iam::${{ secrets.AWS_PROJECT_ID }}:role/GithubActionsRoleECRPush
         aws-region: us-east-1
 
     - name: Login to Amazon ECR
       id: login-ecr
-      uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076
+      uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
     - name: Retag image (AWS)
       run: |-
