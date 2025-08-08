@@ -64,7 +64,7 @@ jobs:
 
     - name: Authenticate to Google Cloud
       id: gcloud-auth
-      uses: google-github-actions/auth@140bb5113ffb6b65a7e9b937a81fa96cf5064462 # v2.1.11
+      uses: google-github-actions/auth@b7593ed2efd1c1617e1b0254da33b86225adb2a5 # v2.1.12
       with:
         token_format: access_token
         workload_identity_provider: projects/${{ secrets.GCP_PROJECT_NUM }}/locations/global/workloadIdentityPools/ci-orchestrator-deploy/providers/github-actions
@@ -89,7 +89,7 @@ jobs:
         docker logout "$GOOGLE_REGISTRY"
 
     - name: Authenticate to AWS
-      uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+      uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
       with:
         role-to-assume: arn:aws:iam::${{ secrets.AWS_PROJECT_ID }}:role/GithubActionsRoleECRPush
         aws-region: us-east-1
