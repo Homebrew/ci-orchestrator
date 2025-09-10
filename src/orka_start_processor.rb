@@ -21,6 +21,8 @@ class OrkaStartProcessor < ThreadRunner
     "14-arm64"       => "sonoma-arm64",
     "15-x86_64"      => "sequoia",
     "15-arm64"       => "sequoia-arm64",
+    "26-x86_64"      => "tahoe",
+    "26-arm64"       => "tahoe-arm64",
   }.freeze, T::Hash[String, String])
 
   sig { returns(JobQueue) }
