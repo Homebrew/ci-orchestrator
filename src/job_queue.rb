@@ -16,10 +16,13 @@ class JobQueue
     @queue_type = queue_type
     @condvar = T.let(ConditionVariable.new, ConditionVariable)
 
-    # Ideally, long + dispatch slots < QueueTypes.slots(@queue_type).
-    # Combined long + dispatch slots should not exceed 50% of total slots.
-    # Dispatch can use up to 50% if long queue is empty.
-    @combined_priority_slots = T.let(@queue_type.slots / 2, Integer)
+    # Dynamic allocation:
+    # - If dispatch queue empty: long gets 50%
+    # - If long queue empty: dispatch gets 50%
+    # - If both dispatch and long have jobs: both get 25%
+    # - Default fills remaining slots up to 100%
+    @half_slots = T.let(@queue_type.slots / 2, Integer)
+    @quarter_slots = T.let(@queue_type.slots / 4, Integer)
   end
 
   sig { params(job: Job).returns(T.self_type) }
@@ -46,17 +49,31 @@ class JobQueue
         running_jobs = SharedState.instance.running_jobs(@queue_type)
         running_long_build_count = running_jobs.count(&:long_build?)
         running_dispatch_build_count = running_jobs.count(&:dispatch_job?)
-        combined_priority_count = running_long_build_count + running_dispatch_build_count
 
-        if combined_priority_count < @combined_priority_slots
-          # Prioritize long jobs first
-          if !queue(PriorityType::Long).empty?
-            break T.must(queue(PriorityType::Long).shift)
-          # If no long jobs, dispatch can use the remaining priority slots
-          elsif !queue(PriorityType::Dispatch).empty?
-            break T.must(queue(PriorityType::Dispatch).shift)
-          end
+        has_long_jobs = !queue(PriorityType::Long).empty?
+        has_dispatch_jobs = !queue(PriorityType::Dispatch).empty?
+
+        if has_long_jobs && has_dispatch_jobs
+          # Both have jobs: each gets 25%
+          long_slot_limit = dispatch_slot_limit = @quarter_slots
+        elsif has_long_jobs
+          # Dispatch empty: long gets 50%
+          long_slot_limit = @half_slots
+          dispatch_slot_limit = 0
+        elsif has_dispatch_jobs
+          # Long empty: dispatch gets 50%
+          dispatch_slot_limit = @half_slots
+          long_slot_limit = 0
+        else
+          # Both empty: only schedule default jobs
+          long_slot_limit = dispatch_slot_limit = 0
         end
+
+        should_schedule_long = has_long_jobs && running_long_build_count < long_slot_limit
+        break T.must(queue(PriorityType::Long).shift) if should_schedule_long
+
+        should_schedule_dispatch = has_dispatch_jobs && running_dispatch_build_count < dispatch_slot_limit
+        break T.must(queue(PriorityType::Dispatch).shift) if should_schedule_dispatch
 
         # Fill remaining slots with default jobs
         break T.must(queue(PriorityType::Default).shift) unless queue(PriorityType::Default).empty?
