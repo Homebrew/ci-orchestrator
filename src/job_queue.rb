@@ -53,20 +53,20 @@ class JobQueue
         has_long_jobs = !queue(PriorityType::Long).empty?
         has_dispatch_jobs = !queue(PriorityType::Dispatch).empty?
 
-        long_slot_limit = if !has_dispatch_jobs
-          @half_slots # Dispatch empty: long gets 50%
+        if has_long_jobs && has_dispatch_jobs
+          # Both have jobs: each gets 25%
+          long_slot_limit = dispatch_slot_limit = @quarter_slots
         elsif has_long_jobs
-          @quarter_slots # Both have jobs: long gets 25%
-        else
-          0 # Long empty: long gets 0%
-        end
-
-        dispatch_slot_limit = if !has_long_jobs
-          @half_slots # Long empty: dispatch gets 50%
+          # Dispatch empty: long gets 50%
+          long_slot_limit = @half_slots
+          dispatch_slot_limit = 0
         elsif has_dispatch_jobs
-          @quarter_slots # Both have jobs: dispatch gets 25%
+          # Long empty: dispatch gets 50%
+          dispatch_slot_limit = @half_slots
+          long_slot_limit = 0
         else
-          0 # Dispatch empty: dispatch gets 0%
+          # Both empty: only schedule default jobs
+          long_slot_limit = dispatch_slot_limit = 0
         end
 
         should_schedule_long = has_long_jobs && running_long_build_count < long_slot_limit
