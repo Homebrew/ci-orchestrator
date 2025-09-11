@@ -16,9 +16,10 @@ class JobQueue
     @queue_type = queue_type
     @condvar = T.let(ConditionVariable.new, ConditionVariable)
 
-    # Ideally, @long_build_slots + @dispatch_build_slots < QueueTypes.slots(@queue_type).
-    @long_build_slots = T.let(@queue_type.slots / 2, Integer)
-    @dispatch_build_slots = T.let(@queue_type.slots / 4, Integer)
+    # Ideally, long + dispatch slots < QueueTypes.slots(@queue_type).
+    # Combined long + dispatch slots should not exceed 50% of total slots.
+    # Dispatch can use up to 50% if long queue is empty.
+    @combined_priority_slots = T.let(@queue_type.slots / 2, Integer)
   end
 
   sig { params(job: Job).returns(T.self_type) }
@@ -45,16 +46,22 @@ class JobQueue
         running_jobs = SharedState.instance.running_jobs(@queue_type)
         running_long_build_count = running_jobs.count(&:long_build?)
         running_dispatch_build_count = running_jobs.count(&:dispatch_job?)
+        combined_priority_count = running_long_build_count + running_dispatch_build_count
 
-        if running_long_build_count < @long_build_slots && !queue(PriorityType::Long).empty?
-          break T.must(queue(PriorityType::Long).shift)
-        elsif running_dispatch_build_count < @dispatch_build_slots && !queue(PriorityType::Dispatch).empty?
-          break T.must(queue(PriorityType::Dispatch).shift)
-        elsif !queue(PriorityType::Default).empty?
-          break T.must(queue(PriorityType::Default).shift)
-        else
-          @condvar.wait(@mutex)
+        if combined_priority_count < @combined_priority_slots
+          # Prioritize long jobs first
+          if !queue(PriorityType::Long).empty?
+            break T.must(queue(PriorityType::Long).shift)
+          # If no long jobs, dispatch can use the remaining priority slots
+          elsif !queue(PriorityType::Dispatch).empty?
+            break T.must(queue(PriorityType::Dispatch).shift)
+          end
         end
+
+        # Fill remaining slots with default jobs
+        break T.must(queue(PriorityType::Default).shift) unless queue(PriorityType::Default).empty?
+
+        @condvar.wait(@mutex)
       end
     end
   end
