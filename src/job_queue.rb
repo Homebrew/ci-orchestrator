@@ -69,10 +69,6 @@ class JobQueue
           long_slot_limit = dispatch_slot_limit = 0
         end
 
-        # Unconditionally allocate 50% capacity to dispatch queue.
-        # TODO: Remove after mass bottling for Tahoe.
-        dispatch_slot_limit = @half_slots if has_dispatch_jobs
-
         should_schedule_long = has_long_jobs && running_long_build_count < long_slot_limit
         break T.must(queue(PriorityType::Long).shift) if should_schedule_long
 
