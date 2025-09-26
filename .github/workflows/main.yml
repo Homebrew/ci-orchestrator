@@ -103,7 +103,6 @@ jobs:
         docker image tag "$GOOGLE_IMAGE" "$AWS_IMAGE"
 
     - name: Push to AWS
-      # Not deployed yet, needs missing infrastructure
       run: |
         docker push "$AWS_IMAGE"
 
@@ -143,3 +142,23 @@ jobs:
         SED_SCRIPT
         kubectl apply -f .
         kubectl rollout status statefulset/ci-orchestrator
+
+    - name: Download task definition
+      run: |
+        aws ecs describe-task-definition --region us-east-1 --task-definition orchestrator-service --query taskDefinition > task-definition.json
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        container-name: orchestrator-container
+        image: "$AWS_IMAGE"
+
+    - name: Deploy to Amazon ECS
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      with:
+        task-definition: task-definition.json
+        service: orchestrator-service
+        cluster: orchestrator-cluster
+        wait-for-service-stability: true
